@@ -1,6 +1,7 @@
 # Directories
 data/beta catenin/
 data/ROS/
+plots/
 
 # History files
 .Rhistory
