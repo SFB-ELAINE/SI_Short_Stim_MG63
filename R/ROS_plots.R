@@ -24,13 +24,16 @@ setwd(dir = "..")
 
 df_ROS <- read_csv(file = ROS_data, name_repair = "universal", show_col_types = FALSE)
 
-
 # Rename columns of the image acquisition positions (first number is col,
 # second number is row)
 
 names(df_ROS) <- gsub(pattern = "\\.\\.([0-9]{1,2})\\.([0-9]{1,2})",
                       replacement = "pos_\\1_\\2", x = names(df_ROS))
 positions <- grep(pattern = "pos", x = names(df_ROS), value = TRUE)
+
+# Change NAs in fluorescence data to max possible value
+max_possible_fluorescence_value <- 2^16-1
+df_ROS[, positions][is.na(df_ROS[, positions])] <- max_possible_fluorescence_value
 
 # Add column with mean and std (the "Mean" and "StDev" come from the
 # TECAN software)
@@ -62,7 +65,7 @@ df_tidy_ROS <- df_tidy_ROS %>%
 df_tidy_ROS <- df_tidy_ROS[!is.na(df_tidy_ROS$fluorescence),]
 # any(is.na(df_tidy_ROS$fluorescence))
 
-df_tidy_ROS$fluorescence <- df_tidy_ROS$fluorescence/(2^16-1)
+df_tidy_ROS$fluorescence <- df_tidy_ROS$fluorescence/(max_possible_fluorescence_value)
 df_tidy_ROS$Experiment <- as.factor(df_tidy_ROS$Experiment)
 df_tidy_ROS$Well <- as.factor(df_tidy_ROS$Well)
 
