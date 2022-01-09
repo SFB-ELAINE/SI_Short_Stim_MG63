@@ -2,6 +2,7 @@
 data/beta catenin/
 data/ROS/
 plots/
+R/TODOs
 
 # History files
 .Rhistory
