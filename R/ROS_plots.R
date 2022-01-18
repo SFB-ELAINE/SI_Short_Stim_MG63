@@ -1,7 +1,7 @@
 # Script for plotting histograms of ROS readout using TECAN reader +++++++++
 # Author: Kai Budde
 # Created: 2022/01/04
-# Last changed: 2022/01/04
+# Last changed: 2022/01/18
 
 rm(list=ls())
 
@@ -9,6 +9,9 @@ rm(list=ls())
 
 ROS_data <- "data/ROS_raw_data.csv"
 output_dir <- "plots"
+filter_out_timepoint <- "4h"
+filter_out_experiment_nr <- 2
+
 
 # General function parameters ##############################################
 options(stringsAsFactors = FALSE, warn=-1)
@@ -23,6 +26,10 @@ setwd(dir = "..")
 # Data input, cleaning, and additional columns #############################
 
 df_ROS <- read_csv(file = ROS_data, name_repair = "universal", show_col_types = FALSE)
+
+# Remove specified rows
+df_ROS <- df_ROS %>%
+  filter(!(TimePoint == filter_out_timepoint & Experiment == filter_out_experiment_nr))
 
 # Rename columns of the image acquisition positions (first number is col,
 # second number is row)
@@ -166,7 +173,7 @@ for(i in time_points){
     
   }
 }
-
+rm(list = c("i", "j", "df_dummy"))
 
 # Plot ratio of ROS over time
 
@@ -188,3 +195,44 @@ plot_ROS_ratio <- ggplot(df_final_2, aes(x=TimePoint,ratio_mean_fluorescence)) +
   
 file_name <- paste(output_dir, "/ROS_ratio.png", sep="")
 ggsave(filename = file_name, width = 297, height = 210, units = "mm")
+
+# Plot heatmaps with positions of TECAN reader -----------------------------
+
+# add columns with x and y position
+df_tidy_ROS$pos_x <- as.numeric(gsub(pattern = ".+_([0-9]+)_.+", replacement = "\\1", x = df_tidy_ROS$position))
+df_tidy_ROS$pos_y <- as.numeric(gsub(pattern = ".+_[0-9]+_([0-9]+)", replacement = "\\1", x = df_tidy_ROS$position))
+
+max_stim <- max(df_tidy_ROS$fluorescence[df_tidy_ROS$Group != "pos"])
+max_pos <- max(df_tidy_ROS$fluorescence[df_tidy_ROS$Group == "pos"])
+for(i in time_points){
+  for(j in experiments){
+    for(k in wells){
+      for(l in experiment_groups){
+        # Filter for one experiment and one well and one group
+        df_dummy <- df_tidy_ROS %>%
+          filter(TimePoint == i, Experiment == j, Well == k, Group == l)
+        
+        # Plot heatmap
+        if(dim(df_dummy)[1] > 1){
+          
+          if(l == "pos"){
+            scale_limit <- max_pos
+          }else{
+            scale_limit <- max_stim
+          }
+          ggplot(df_dummy, aes(pos_x, pos_y, fill=fluorescence)) + 
+            geom_tile() +
+            scale_fill_gradient(low="white", high="black", na.value = "white", limits = c(0,scale_limit)) +
+            #scale_fill_distiller(palette = rev("Reds")) +
+            theme_bw()
+          
+          well_id <- as.numeric(gsub(pattern = ".+([0-9])", replacement = "\\1", x = k))
+          file_name <- paste(output_dir, "/TECAN_reads_", i, "_Exp", j, "_Well", well_id, "_", l, ".png", sep="")
+          ggsave(filename = file_name, width = 297, height = 210, units = "mm")
+        }
+      }
+    }
+  }
+}
+
+rm(list = c("i", "j", "k", "l", "df_dummy"))
