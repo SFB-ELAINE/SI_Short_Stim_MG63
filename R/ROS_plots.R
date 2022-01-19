@@ -18,6 +18,7 @@ options(stringsAsFactors = FALSE, warn=-1)
 
 library(tidyverse)
 library(ggplot2)
+library(cowplot)
 
 input_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
 setwd(dir = input_dir)
@@ -80,6 +81,7 @@ time_points <- unique(df_tidy_ROS$TimePoint)
 experiment_groups <- unique(df_tidy_ROS$Group)
 experiments <- unique(df_tidy_ROS$Experiment)
 wells <- unique(df_tidy_ROS$Well)
+well_ids <- as.numeric(unique(gsub(pattern = ".+([0-9])", replacement = "\\1", x = unique(df_tidy_ROS$Well))))
 
 # Save final tibble ########################################################
 
@@ -140,6 +142,7 @@ for(i in time_points){
     }
   }
 }
+rm(list = c("i", "j", "k", "df_dummy", "df_group_mean"))
 
 # Plot for every time point and experiment class a histogram showing the
 # two independent experiments
@@ -173,7 +176,58 @@ for(i in time_points){
     
   }
 }
-rm(list = c("i", "j", "df_dummy"))
+rm(list = c("i", "j", "df_dummy", "df_group_mean"))
+
+
+# Plot for experiment and every wellID (1,2,3) the histograms for
+# every group and time point
+
+for(i in experiments){
+  for(j in well_ids){
+
+    
+    histogram_plots <- vector(mode = "list", length = length(time_points))
+    plot_with_data <- FALSE
+    
+    for(k in time_points){
+      index <- which(time_points == k)
+      df_dummy <- df_tidy_ROS %>%
+        filter(Experiment == i, Group != "pos") %>%
+        filter(grepl(pattern = j, x = Well)) %>%
+        filter(TimePoint == k)
+      
+      if(dim(df_dummy)[1] > 0){
+        plot_with_data <- TRUE}
+        
+      df_group_mean <- df_dummy %>%
+        group_by(TimePoint, Group) %>%
+        summarize(grp_mean = mean(fluorescence, na.rm=TRUE))
+      
+      histogram_plots[[index]] <- ggplot(df_dummy, aes(x=fluorescence,
+                                             fill = Group, color = Group)) +
+        geom_histogram(binwidth = 0.003, alpha=0.2, position="identity") +
+        geom_vline(data = df_group_mean,
+                   mapping = aes(xintercept=grp_mean, color=Group),
+                   linetype="dashed", size=1) +
+        scale_x_continuous(expand = c(0, 0), limits = c(0, 1)) + 
+        scale_y_continuous(expand = c(0, 0), limits = c(0, 50)) +
+        labs(title=paste("Exp: ", i, ", WellID: ", j, ", Time point: ", k,  sep=""),
+             x="Fluorescence intensity (arb. unit)", y = "Count")+
+        theme_bw()
+      
+    }
+    
+    if(plot_with_data){
+      p <- cowplot::plot_grid(plotlist = histogram_plots, labels = "AUTO")
+      
+      # print(plot_histogram)
+      
+      file_name <- paste(output_dir, "/histogram_exp", i, "_WellID", j, ".png", sep="")
+      ggsave(filename = file_name, width = 297, height = 210, units = "mm")
+    }
+  }
+}
+rm(list = c("i", "j", "df_dummy", "df_group_mean"))
 
 # Plot ratio of ROS over time
 
