@@ -1,7 +1,7 @@
 # Script for plotting histograms of ROS readout using TECAN reader +++++++++
 # Author: Kai Budde
 # Created: 2022/01/04
-# Last changed: 2022/01/18
+# Last changed: 2022/01/19
 
 rm(list=ls())
 
@@ -229,6 +229,21 @@ for(i in time_points){
           well_id <- as.numeric(gsub(pattern = ".+([0-9])", replacement = "\\1", x = k))
           file_name <- paste(output_dir, "/TECAN_reads_", i, "_Exp", j, "_Well", well_id, "_", l, ".png", sep="")
           ggsave(filename = file_name, width = 297, height = 210, units = "mm")
+          
+          
+          # Deviation from mean
+          df_dummy$rel_deviation_from_mean <- (mean(df_dummy$fluorescence) - df_dummy$fluorescence)/mean(df_dummy$fluorescence)
+          ggplot(df_dummy, aes(pos_x, pos_y, fill=rel_deviation_from_mean)) + 
+            geom_tile() +
+            scale_fill_gradient2(low="blue", high="red", na.value = "black",
+                                 limits = c(-0.5,0.5)) +
+            #scale_fill_distiller(palette = rev("Reds")) +
+            theme_bw()
+          
+          well_id <- as.numeric(gsub(pattern = ".+([0-9])", replacement = "\\1", x = k))
+          file_name <- paste(output_dir, "/TECAN_reldev_reads_", i, "_Exp", j, "_Well", well_id, "_", l, ".png", sep="")
+          ggsave(filename = file_name, width = 297, height = 210, units = "mm")
+          
         }
       }
     }
