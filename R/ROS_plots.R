@@ -1,7 +1,7 @@
 # Script for plotting histograms of ROS readout using TECAN reader +++++++++
 # Author: Kai Budde
 # Created: 2022/01/04
-# Last changed: 2022/01/19
+# Last changed: 2022/01/20
 
 rm(list=ls())
 
@@ -11,6 +11,7 @@ ROS_data <- "data/ROS_raw_data.csv"
 output_dir <- "plots"
 filter_out_timepoint <- "4h"
 filter_out_experiment_nr <- 2
+calibrate_data <- TRUE
 
 
 # General function parameters ##############################################
@@ -63,6 +64,21 @@ rm(df_ROS_copy)
 # df_ROS <- df_ROS %>% relocate(test, .after = StDev)
 # max(abs(df_ROS$test))
 # any(is.na(df_ROS$test))
+
+# Subtract fluorescence intensities of calibration data from all other data
+df_calib <- df_ROS[df_ROS$Group == "calib",]
+df_ROS <- df_ROS[!(df_ROS$Group == "calib"),]
+
+if(calibrate_data){
+  df_ROS[,positions] <- df_ROS[,positions] - df_calib[rep(1,dim(df_ROS[,positions[1]])[1]), positions]
+  
+  # Rename columns (mean and sd are from uncalibrated data)
+  names(df_ROS)[names(df_ROS) == "Mean"] <- "Mean_uncalibr"
+  names(df_ROS)[names(df_ROS) == "StDev"] <- "StDev_uncalibr"
+  names(df_ROS)[names(df_ROS) == "calc_mean"] <- "calc_mean_uncalibr"
+  names(df_ROS)[names(df_ROS) == "calc_sd"] <- "calc_sd_uncalibr"
+  
+}
 
 # Save tidy tibble #########################################################
 df_tidy_ROS <- df_ROS %>%
@@ -242,7 +258,7 @@ plot_ROS_ratio <- ggplot(df_final_2, aes(x=TimePoint,ratio_mean_fluorescence)) +
                     ymax=ratio_mean_fluorescence+sum_sd_fluorescence), width=.2) +
   labs(title="ROS ratio (stim vs. control)",
        x="time in h", y = "Ratio") +
-  scale_x_continuous(expand = c(0, 0), limits = c(-1, 25), minor_breaks = c(-1:25)) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(-1, 37), minor_breaks = c(-1:37)) + 
   theme_bw()
 
 # print(plot_ROS_ratio)
