@@ -267,7 +267,7 @@ plot_ROS_ratio <- ggplot(df_final_2, aes(x=TimePoint,ratio_mean_fluorescence)) +
   geom_errorbar(aes(ymin=ratio_mean_fluorescence-sum_sd_fluorescence,
                     ymax=ratio_mean_fluorescence+sum_sd_fluorescence), width=.2) +
   labs(title="ROS ratio (stim vs. control)",
-       x="time in h", y = "Ratio") +
+       x="Time in h", y = "Ratio") +
   scale_x_continuous(expand = c(0, 0), limits = c(-1, 37), minor_breaks = c(-1:37),
                      breaks = c(0,2,4,8,12,24,36)) + 
   theme_bw()
