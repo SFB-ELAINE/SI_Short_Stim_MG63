@@ -1,7 +1,7 @@
 # Script for plotting histograms of ROS readout using TECAN reader +++++++++
 # Author: Kai Budde
 # Created: 2022/01/04
-# Last changed: 2022/01/20
+# Last changed: 2022/02/03
 
 rm(list=ls())
 
@@ -65,19 +65,28 @@ rm(df_ROS_copy)
 # max(abs(df_ROS$test))
 # any(is.na(df_ROS$test))
 
-# Subtract fluorescence intensities of calibration data from all other data
-df_calib <- df_ROS[df_ROS$Group == "calib",]
-df_ROS <- df_ROS[!(df_ROS$Group == "calib"),]
-
+# Calibrate data
 if(calibrate_data){
+  df_calib <- df_ROS[df_ROS$Group == "calib",]
+  df_ROS <- df_ROS[!(df_ROS$Group == "calib"),]
+  
+  # calculate mean values of calibration data
+  if(nrow(df_calib) > 1){
+    df_calib[1,positions] <- as.list(colMeans(df_calib[,positions]))
+    df_calib <- df_calib[1,]
+    df_calib$calc_mean <- rowMeans(df_calib[1,positions], na.rm = TRUE)
+    df_calib$calc_sd <- sd(df_ROS[1,positions], na.rm = TRUE)
+  }
+  
+  # Subtract fluorescence intensities of calibration data from all other data
   df_ROS[,positions] <- df_ROS[,positions] - df_calib[rep(1,dim(df_ROS[,positions[1]])[1]), positions]
+  df_ROS[,positions][df_ROS[,positions] < 0] <- 0
   
   # Rename columns (mean and sd are from uncalibrated data)
   names(df_ROS)[names(df_ROS) == "Mean"] <- "Mean_uncalibr"
   names(df_ROS)[names(df_ROS) == "StDev"] <- "StDev_uncalibr"
   names(df_ROS)[names(df_ROS) == "calc_mean"] <- "calc_mean_uncalibr"
   names(df_ROS)[names(df_ROS) == "calc_sd"] <- "calc_sd_uncalibr"
-  
 }
 
 # Save tidy tibble #########################################################
@@ -137,23 +146,24 @@ for(i in time_points){
         group_by(Well) %>%
         summarize(grp_mean = mean(fluorescence, na.rm=TRUE))
       
-      
-      plot_histogram <- ggplot(df_dummy, aes(x=fluorescence,
-                                             fill = Well, color = Well)) +
-        geom_histogram(binwidth = 0.003, alpha=0.2, position="identity") +
-        geom_vline(data = df_group_mean,
-                   mapping = aes(xintercept=grp_mean, color=Well),
-                   linetype="dashed", size=1) +
-        scale_x_continuous(expand = c(0, 0), limits = c(0, 1)) + 
-        scale_y_continuous(expand = c(0, 0), limits = c(0, 50)) +
-        labs(title=paste("Time point: ", i, ", Group: ", j, ", Exp: ", k, sep=""),
-             x="Fluorescence intensity (arb. unit)", y = "Count")+
-        theme_bw()
-      
-      # print(plot_histogram)
-      
-      file_name <- paste(output_dir, "/histogram_", i, "_", j, "_", k, ".png", sep="")
-      ggsave(filename = file_name, width = 297, height = 210, units = "mm")
+      if(dim(df_dummy)[1] > 1){
+        plot_histogram <- ggplot(df_dummy, aes(x=fluorescence,
+                                               fill = Well, color = Well)) +
+          geom_histogram(binwidth = 0.003, alpha=0.2, position="identity") +
+          geom_vline(data = df_group_mean,
+                     mapping = aes(xintercept=grp_mean, color=Well),
+                     linetype="dashed", size=1) +
+          scale_x_continuous(expand = c(0, 0), limits = c(0, 1)) + 
+          scale_y_continuous(expand = c(0, 0), limits = c(0, 50)) +
+          labs(title=paste("Time point: ", i, ", Group: ", j, ", Exp: ", k, sep=""),
+               x="Fluorescence intensity (arb. unit)", y = "Count")+
+          theme_bw()
+        
+        # print(plot_histogram)
+        
+        file_name <- paste(output_dir, "/histogram_", i, "_", j, "_", k, ".png", sep="")
+        ggsave(filename = file_name, width = 297, height = 210, units = "mm")
+      }
       
     }
   }
@@ -172,30 +182,30 @@ for(i in time_points){
       group_by(Experiment) %>%
       summarize(grp_mean = mean(fluorescence, na.rm=TRUE))
     
-    
-    plot_histogram <- ggplot(df_dummy, aes(x=fluorescence,
-                                           fill = Experiment, color = Experiment)) +
-      geom_histogram(binwidth = 0.003, alpha=0.2, position="identity") +
-      geom_vline(data = df_group_mean,
-                 mapping = aes(xintercept=grp_mean, color=Experiment),
-                 linetype="dashed", size=1) +
-      scale_x_continuous(expand = c(0, 0), limits = c(0, 1)) + 
-      scale_y_continuous(expand = c(0, 0), limits = c(0, 100)) +
-      labs(title=paste("Time point: ", i, ", Group: ", j, sep=""),
-           x="Fluorescence intensity (arb. unit)", y = "Count")+
-      theme_bw()
-    
-    # print(plot_histogram)
-    
-    file_name <- paste(output_dir, "/histogram_", i, "_", j, ".png", sep="")
-    ggsave(filename = file_name, width = 297, height = 210, units = "mm")
-    
+    if(dim(df_dummy)[1] > 1){
+      plot_histogram <- ggplot(df_dummy, aes(x=fluorescence,
+                                             fill = Experiment, color = Experiment)) +
+        geom_histogram(binwidth = 0.003, alpha=0.2, position="identity") +
+        geom_vline(data = df_group_mean,
+                   mapping = aes(xintercept=grp_mean, color=Experiment),
+                   linetype="dashed", size=1) +
+        scale_x_continuous(expand = c(0, 0), limits = c(0, 1)) + 
+        scale_y_continuous(expand = c(0, 0), limits = c(0, 100)) +
+        labs(title=paste("Time point: ", i, ", Group: ", j, sep=""),
+             x="Fluorescence intensity (arb. unit)", y = "Count")+
+        theme_bw()
+      
+      # print(plot_histogram)
+      
+      file_name <- paste(output_dir, "/histogram_", i, "_", j, ".png", sep="")
+      ggsave(filename = file_name, width = 297, height = 210, units = "mm")
+    }
   }
 }
 rm(list = c("i", "j", "df_dummy", "df_group_mean"))
 
 
-# Plot for experiment and every wellID (1,2,3) the histograms for
+# Plot for experiment and every well (1,2,3) the histograms for
 # every group and time point
 
 for(i in experiments){
@@ -227,7 +237,7 @@ for(i in experiments){
                    linetype="dashed", size=1) +
         scale_x_continuous(expand = c(0, 0), limits = c(0, 1)) + 
         scale_y_continuous(expand = c(0, 0), limits = c(0, 50)) +
-        labs(title=paste("Exp: ", i, ", WellID: ", j, ", Time point: ", k,  sep=""),
+        labs(title=paste("Exp: ", i, ", Well: ", j, ", Time point: ", k,  sep=""),
              x="Fluorescence intensity (arb. unit)", y = "Count")+
         theme_bw()
       
@@ -238,7 +248,7 @@ for(i in experiments){
       
       # print(plot_histogram)
       
-      file_name <- paste(output_dir, "/histogram_exp", i, "_WellID", j, ".png", sep="")
+      file_name <- paste(output_dir, "/histogram_exp", i, "_Well", j, ".png", sep="")
       ggsave(filename = file_name, width = 297, height = 210, units = "mm")
     }
   }
@@ -251,14 +261,15 @@ plot_ROS_ratio <- ggplot(df_final_2, aes(x=TimePoint,ratio_mean_fluorescence)) +
   geom_point(size = 2) +
   geom_line() +
   geom_vline(xintercept = 0, linetype="dotted", color = "blue", size=1) +
-  geom_text(aes(x=0, label="stim on", y=1.5), hjust=-0.1, colour="blue", text=element_text(size=11)) +
+  geom_text(aes(x=0, label="stim on", y=1.4), hjust=-0.1, colour="blue", text=element_text(size=11)) +
   geom_vline(xintercept = 2, linetype="dotted", color = "blue", size=1) +
-  geom_text(aes(x=2, label="stim off", y=1.5), hjust=-0.1, colour="blue", text=element_text(size=11)) +
+  geom_text(aes(x=2, label="stim off", y=1.6), hjust=-0.1, colour="blue", text=element_text(size=11)) +
   geom_errorbar(aes(ymin=ratio_mean_fluorescence-sum_sd_fluorescence,
                     ymax=ratio_mean_fluorescence+sum_sd_fluorescence), width=.2) +
   labs(title="ROS ratio (stim vs. control)",
        x="time in h", y = "Ratio") +
-  scale_x_continuous(expand = c(0, 0), limits = c(-1, 37), minor_breaks = c(-1:37)) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(-1, 37), minor_breaks = c(-1:37),
+                     breaks = c(0,2,4,8,12,24,36)) + 
   theme_bw()
 
 # print(plot_ROS_ratio)

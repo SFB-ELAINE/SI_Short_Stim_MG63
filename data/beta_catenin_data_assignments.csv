@@ -1,7 +1,7 @@
 frame_name,experiment
-b catenin.001,blank---
-b catenin.002,blank+--
-b catenin.003,blank--+
+b catenin.001,Blank---_1
+b catenin.002,Blank+--_1
+b catenin.003,Blank--+_1
 b catenin.004,0h_pos_1
 b catenin.005,0h_pos_2
 b catenin.006,2h_pos_1
@@ -66,3 +66,39 @@ b catenin.064,24h_stim_B_1
 b catenin.065,24h_stim_B_2
 b catenin.066,24h_stim_C_1
 b catenin.067,24h_stim_C_2
+24.01.2022.001,Blank---_2
+24.01.2022.002,Blank+--_2
+24.01.2022.003,Blank--+_2
+24.01.2022.004,0h_pos_1
+24.01.2022.005,0h_pos_2
+24.01.2022.006,0h_pos_1_new
+24.01.2022.007,2h_pos_1
+24.01.2022.008,2h_pos_2
+24.01.2022.009,4h_pos_1
+24.01.2022.010,4h_pos_1_new
+24.01.2022.011,8h_pos_1
+24.01.2022.012,8h_pos_2
+24.01.2022.013,24h_pos_1
+24.01.2022.014,36h_pos_1
+24.01.2022.015,0h_control_A_1_new
+24.01.2022.016,0h_control_B_1_new
+24.01.2022.017,0h_control_C_1_new
+24.01.2022.018,4h_control_A_1_new
+24.01.2022.019,4h_control_B_1_new
+24.01.2022.020,4h_control_C_1_new
+24.01.2022.021,4h_stim_A_1_new
+24.01.2022.022,4h_stim_B_1_new
+24.01.2022.023,4h_stim_C_1_new
+24.01.2022.024,36h_control_A_1
+24.01.2022.025,36h_control_B_1
+24.01.2022.026,36h_control_C_1
+24.01.2022.027,36h_stim_A_1
+24.01.2022.028,36h_stim_B_1
+24.01.2022.029,36h_stim_C_1
+36h beta catenin.001,36h_pos_2
+36h beta catenin.002,36h_control_A_2
+36h beta catenin.003,36h_control_B_2
+36h beta catenin.004,36h_control_C_2
+36h beta catenin.005,36h_stim_A_2
+36h beta catenin.006,36h_stim_B_2
+36h beta catenin.007,36h_stim_C_2
