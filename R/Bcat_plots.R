@@ -1,7 +1,7 @@
 # Script for plotting histograms of bcat readout using FACS ++++++++++++++++
 # Author: Kai Budde
 # Created: 2022/01/05
-# Last changed: 2022/02/03
+# Last changed: 2022/02/10
 
 rm(list=ls())
 Sys.setlocale("LC_TIME","English")
@@ -55,6 +55,7 @@ setwd(dir = "..")
 df_exp_metadata <- read_csv(file = facs_metadata, name_repair = "universal")
 
 # Read all FACS data
+#description(read.FCS("data/beta_catenin_raw_data/b catenin.001", emptyValue=FALSE))
 FACS_data_bcat_complete <- flowCore::read.flowSet(path = facs_data_dir, alter.names = TRUE)
 
 # Rename the frames
@@ -63,6 +64,11 @@ sample_names <- df_exp_metadata$Experiment[match(x = sample_names, table = df_ex
 sampleNames(FACS_data_bcat_complete) <- sample_names
 
 FACS_data_bcat_complete@phenoData@data$name <- sample_names
+
+dates <- flowCore::keyword(object = FACS_data_bcat_complete, keyword = "$DATE")
+times <- flowCore::keyword(object = FACS_data_bcat_complete, keyword = "$ETIM")
+
+
 
 # Plot forward vs. side scatter data for every image #######################
 
@@ -181,7 +187,7 @@ df_FACS_filtered$Group <- gsub(pattern = search_pattern,
                                    ignore.case = TRUE)
 
 df_FACS_filtered$Well <- df_FACS_filtered$ID
-search_pattern <- ".+_([A-C]+)_.+"
+search_pattern <- ".+_([A-B][1-3])_.+"
 df_FACS_filtered$Well[
   !grepl(pattern = search_pattern,
          x = df_FACS_filtered$Well,
@@ -190,6 +196,9 @@ df_FACS_filtered$Well <- gsub(pattern = search_pattern,
                                replacement = "\\1",
                                x = df_FACS_filtered$Well,
                                ignore.case = TRUE)
+df_FACS_filtered$WellID <- as.numeric(gsub(pattern = ".+([1-3])",
+                                           replacement = "\\1",
+                                           x = df_FACS_filtered$Well))
 
 df_FACS_filtered$Well[is.na(df_FACS_filtered$Well)] <- "Z"
 
@@ -236,7 +245,7 @@ df_FACS_filtered$FL2.H.mean[(df_FACS_filtered$TimePoint == 36 &
 # Calculate ratios of stim and control group ###############################
 
 df_final <-  df_FACS_filtered %>%
-  group_by(TimePoint, Well, Experiment) %>%
+  group_by(TimePoint, WellID, Experiment) %>%
   summarize(ratio_mean_fluorescence = FL2.H.mean[Group == "stim"]/
               FL2.H.mean[Group == "control"],
             sum_sd_fluorescence = FL2.H.sd[Group == "stim"]+
@@ -259,6 +268,18 @@ for(i in 0:(max(df_final$TimePoint)+1)){
 
 # Save time points as factors
 df_final$TimePoint <- as.factor(df_final$TimePoint)
+
+# Save aggregates data as csv ##############################################
+df_final_output <- df_FACS_filtered %>%
+  select(ID, FL2.H.mean, TimePoint, Group, Well, Experiment) %>%
+  dplyr::filter(Group != "pos")
+
+df_final_output$Time <- times[match(df_final_output$ID, dimnames(times)[[1]])]
+df_final_output$Date <- dates[match(df_final_output$ID, dimnames(dates)[[1]])]
+df_final_output$Date <- as.Date(df_final_output$Date, format = "%d-%b-%y")
+
+file_name <- paste(output_dir, "/betacatenin_data.csv", sep="")
+write.csv(x = df_final_output, file = file_name, row.names = FALSE)
 
 # Plot ratios of mean fluorescence intensities #############################
 

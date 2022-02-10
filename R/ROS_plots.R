@@ -1,7 +1,7 @@
 # Script for plotting histograms of ROS readout using TECAN reader +++++++++
 # Author: Kai Budde
 # Created: 2022/01/04
-# Last changed: 2022/02/03
+# Last changed: 2022/02/09
 
 rm(list=ls())
 
@@ -31,7 +31,7 @@ df_ROS <- read_csv(file = ROS_data, name_repair = "universal", show_col_types = 
 
 # Remove specified rows
 df_ROS <- df_ROS %>%
-  filter(!(TimePoint == filter_out_timepoint & Experiment == filter_out_experiment_nr))
+  dplyr::filter(!(TimePoint == filter_out_timepoint & Experiment == filter_out_experiment_nr))
 
 # Rename columns of the image acquisition positions (first number is col,
 # second number is row)
@@ -91,10 +91,10 @@ if(calibrate_data){
 
 # Save tidy tibble #########################################################
 df_tidy_ROS <- df_ROS %>%
-  select(c("TimePoint", "Experiment", "Group", "Well", positions))
+  select(c("Date", "Time", "TimePoint", "Experiment", "Group", "Well", positions))
 
 df_tidy_ROS <- df_tidy_ROS %>%
-  gather(key = position, value = fluorescence, -c(1:4))
+  gather(key = position, value = fluorescence, -c(1:6))
 df_tidy_ROS <- df_tidy_ROS[!is.na(df_tidy_ROS$fluorescence),]
 # any(is.na(df_tidy_ROS$fluorescence))
 
@@ -111,7 +111,7 @@ well_ids <- as.numeric(unique(gsub(pattern = ".+([0-9])", replacement = "\\1", x
 # Save final tibble ########################################################
 
 df_final_1 <- df_tidy_ROS %>%
-  filter(Group != "pos") %>%
+  dplyr::filter(Group != "pos") %>%
   group_by(TimePoint, Group) %>%
   summarize(mean_fluorescence = mean(fluorescence, na.rm = TRUE),
             sd_fluorescence = sd(fluorescence, na.rm = TRUE))
@@ -126,6 +126,16 @@ df_final_2 <- df_final_1 %>%
 df_final_2$TimePoint <- gsub(pattern = "h", replacement = "", x = df_final_2$TimePoint)
 df_final_2$TimePoint <- as.numeric(df_final_2$TimePoint)
 
+# Save aggregates data as csv ##############################################
+df_final_output <- df_tidy_ROS %>%
+  dplyr::filter(Group != "pos") %>%
+  group_by(Date, Time, TimePoint, Experiment, Group, Well) %>%
+  summarize(mean_fluorescence = mean(fluorescence, na.rm = TRUE),
+            sd_fluorescence = sd(fluorescence, na.rm = TRUE))
+
+file_name <- paste(output_dir, "/ROS_data.csv", sep="")
+write.csv(x = df_final_output, file = file_name, row.names = FALSE)
+
 # Plotting #################################################################
 
 dir.create(path = output_dir, showWarnings = FALSE)
@@ -138,9 +148,9 @@ for(i in time_points){
     for(k in experiments){
       
       df_dummy <- df_tidy_ROS %>%
-        filter(TimePoint == i) %>%
-        filter(Group == j) %>%
-        filter(Experiment == k)
+        dplyr::filter(TimePoint == i) %>%
+        dplyr::filter(Group == j) %>%
+        dplyr::filter(Experiment == k)
       
       df_group_mean <- df_dummy %>%
         group_by(Well) %>%
@@ -175,8 +185,8 @@ rm(list = c("i", "j", "k", "df_dummy", "df_group_mean"))
 for(i in time_points){
   for(j in experiment_groups){
     df_dummy <- df_tidy_ROS %>%
-      filter(TimePoint == i) %>%
-      filter(Group == j)
+      dplyr::filter(TimePoint == i) %>%
+      dplyr::filter(Group == j)
     
     df_group_mean <- df_dummy %>%
       group_by(Experiment) %>%
@@ -218,9 +228,9 @@ for(i in experiments){
     for(k in time_points){
       index <- which(time_points == k)
       df_dummy <- df_tidy_ROS %>%
-        filter(Experiment == i, Group != "pos") %>%
-        filter(grepl(pattern = j, x = Well)) %>%
-        filter(TimePoint == k)
+        dplyr::filter(Experiment == i, Group != "pos") %>%
+        dplyr::filter(grepl(pattern = j, x = Well)) %>%
+        dplyr::filter(TimePoint == k)
       
       if(dim(df_dummy)[1] > 0){
         plot_with_data <- TRUE}
@@ -291,7 +301,7 @@ for(i in time_points){
       for(l in experiment_groups){
         # Filter for one experiment and one well and one group
         df_dummy <- df_tidy_ROS %>%
-          filter(TimePoint == i, Experiment == j, Well == k, Group == l)
+          dplyr::filter(TimePoint == i, Experiment == j, Well == k, Group == l)
         
         # Plot heatmap
         if(dim(df_dummy)[1] > 1){

@@ -12,60 +12,60 @@ b catenin.010,8h_pos_1
 b catenin.011,8h_pos_2
 b catenin.012,24h_pos_1
 b catenin.013,24h_pos_2
-b catenin.014,0h_control_A_1
-b catenin.015,0h_control_A_2
-b catenin.016,0h_control_B_1
-b catenin.017,0h_control_B_2
-b catenin.018,0h_control_C_1
-b catenin.019,0h_control_C_2
-b catenin.020,2h_control_A_1
-b catenin.021,2h_control_A_2
-b catenin.022,2h_control_B_1
-b catenin.023,2h_control_B_2
-b catenin.024,2h_control_C_1
-b catenin.025,2h_control_C_2
-b catenin.026,2h_stim_A_1
-b catenin.027,2h_stim_A_2
-b catenin.028,2h_stim_B_1
-b catenin.029,2h_stim_B_2
-b catenin.030,2h_stim_C_1
-b catenin.031,2h_stim_C_2
-b catenin.032,4h_control_A_1
-b catenin.033,4h_control_A_2
-b catenin.034,4h_control_B_1
-b catenin.035,4h_control_B_2
-b catenin.036,4h_control_C_1
-b catenin.037,4h_control_C_2
-b catenin.038,4h_stim_A_1
-b catenin.039,4h_stim_A_2
-b catenin.040,4h_stim_B_1
-b catenin.041,4h_stim_B_2
-b catenin.042,4h_stim_C_1
-b catenin.043,4h_stim_C_2
-b catenin.044,8h_control_A_1
-b catenin.045,8h_control_A_2
-b catenin.046,8h_control_B_1
-b catenin.047,8h_control_B_2
-b catenin.048,8h_control_C_1
-b catenin.049,8h_control_C_2
-b catenin.050,8h_stim_A_1
-b catenin.051,8h_stim_A_2
-b catenin.052,8h_stim_B_1
-b catenin.053,8h_stim_B_2
-b catenin.054,8h_stim_C_1
-b catenin.055,8h_stim_C_2
-b catenin.056,24h_control_A_1
-b catenin.057,24h_control_A_2
-b catenin.058,24h_control_B_1
-b catenin.059,24h_control_B_2
-b catenin.060,24h_control_C_1
-b catenin.061,24h_control_C_2
-b catenin.062,24h_stim_A_1
-b catenin.063,24h_stim_A_2
-b catenin.064,24h_stim_B_1
-b catenin.065,24h_stim_B_2
-b catenin.066,24h_stim_C_1
-b catenin.067,24h_stim_C_2
+b catenin.014,0h_control_A1_1
+b catenin.015,0h_control_A1_2
+b catenin.016,0h_control_A2_1
+b catenin.017,0h_control_A2_2
+b catenin.018,0h_control_A3_1
+b catenin.019,0h_control_A3_2
+b catenin.020,2h_control_A1_1
+b catenin.021,2h_control_A1_2
+b catenin.022,2h_control_A2_1
+b catenin.023,2h_control_A2_2
+b catenin.024,2h_control_A3_1
+b catenin.025,2h_control_A3_2
+b catenin.026,2h_stim_B1_1
+b catenin.027,2h_stim_B1_2
+b catenin.028,2h_stim_B2_1
+b catenin.029,2h_stim_B2_2
+b catenin.030,2h_stim_B3_1
+b catenin.031,2h_stim_B3_2
+b catenin.032,4h_control_A1_1
+b catenin.033,4h_control_A1_2
+b catenin.034,4h_control_A2_1
+b catenin.035,4h_control_A2_2
+b catenin.036,4h_control_A3_1
+b catenin.037,4h_control_A3_2
+b catenin.038,4h_stim_B1_1
+b catenin.039,4h_stim_B1_2
+b catenin.040,4h_stim_B2_1
+b catenin.041,4h_stim_B2_2
+b catenin.042,4h_stim_B3_1
+b catenin.043,4h_stim_B3_2
+b catenin.044,8h_control_A1_1
+b catenin.045,8h_control_A1_2
+b catenin.046,8h_control_A2_1
+b catenin.047,8h_control_A2_2
+b catenin.048,8h_control_A3_1
+b catenin.049,8h_control_A3_2
+b catenin.050,8h_stim_B1_1
+b catenin.051,8h_stim_B1_2
+b catenin.052,8h_stim_B2_1
+b catenin.053,8h_stim_B2_2
+b catenin.054,8h_stim_B3_1
+b catenin.055,8h_stim_B3_2
+b catenin.056,24h_control_A1_1
+b catenin.057,24h_control_A1_2
+b catenin.058,24h_control_A2_1
+b catenin.059,24h_control_A2_2
+b catenin.060,24h_control_A3_1
+b catenin.061,24h_control_A3_2
+b catenin.062,24h_stim_B1_1
+b catenin.063,24h_stim_B1_2
+b catenin.064,24h_stim_B2_1
+b catenin.065,24h_stim_B2_2
+b catenin.066,24h_stim_B3_1
+b catenin.067,24h_stim_B3_2
 24.01.2022.001,Blank---_2
 24.01.2022.002,Blank+--_2
 24.01.2022.003,Blank--+_2
@@ -80,25 +80,25 @@ b catenin.067,24h_stim_C_2
 24.01.2022.012,8h_pos_2_new
 24.01.2022.013,24h_pos_1_new
 24.01.2022.014,36h_pos_1
-24.01.2022.015,0h_control_A_1_new
-24.01.2022.016,0h_control_B_1_new
-24.01.2022.017,0h_control_C_1_new
-24.01.2022.018,4h_control_A_1_new
-24.01.2022.019,4h_control_B_1_new
-24.01.2022.020,4h_control_C_1_new
-24.01.2022.021,4h_stim_A_1_new
-24.01.2022.022,4h_stim_B_1_new
-24.01.2022.023,4h_stim_C_1_new
-24.01.2022.024,36h_control_A_1
-24.01.2022.025,36h_control_B_1
-24.01.2022.026,36h_control_C_1
-24.01.2022.027,36h_stim_A_1
-24.01.2022.028,36h_stim_B_1
-24.01.2022.029,36h_stim_C_1
+24.01.2022.015,0h_control_A1_1_new
+24.01.2022.016,0h_control_A2_1_new
+24.01.2022.017,0h_control_A3_1_new
+24.01.2022.018,4h_control_A1_1_new
+24.01.2022.019,4h_control_A2_1_new
+24.01.2022.020,4h_control_A3_1_new
+24.01.2022.021,4h_stim_B1_1_new
+24.01.2022.022,4h_stim_B2_1_new
+24.01.2022.023,4h_stim_B3_1_new
+24.01.2022.024,36h_control_A1_1
+24.01.2022.025,36h_control_A2_1
+24.01.2022.026,36h_control_A3_1
+24.01.2022.027,36h_stim_B1_1
+24.01.2022.028,36h_stim_B2_1
+24.01.2022.029,36h_stim_B3_1
 36h beta catenin.001,36h_pos_2
-36h beta catenin.002,36h_control_A_2
-36h beta catenin.003,36h_control_B_2
-36h beta catenin.004,36h_control_C_2
-36h beta catenin.005,36h_stim_A_2
-36h beta catenin.006,36h_stim_B_2
-36h beta catenin.007,36h_stim_C_2
+36h beta catenin.002,36h_control_A1_2
+36h beta catenin.003,36h_control_A2_2
+36h beta catenin.004,36h_control_A3_2
+36h beta catenin.005,36h_stim_B1_2
+36h beta catenin.006,36h_stim_B2_2
+36h beta catenin.007,36h_stim_B3_2
