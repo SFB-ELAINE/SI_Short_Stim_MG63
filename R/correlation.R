@@ -22,12 +22,14 @@ output_dir <- "plots"
 # Data input, cleaning, and additional columns #############################
 df_complete <- read.csv(file = ROS_beta_cat_data)
 
+# df_complete <- df_complete %>%
+#   dplyr::filter(TimePoint != 0)
 
 # Plot ratios of mean fluorescence intensities #############################
 df_final_beta_catenin <-  df_complete %>%
   group_by(TimePoint, Experiment) %>%
-  summarize(ratio_mean_fluorescence = FL2.H.mean[Group == "stim"]/
-              FL2.H.mean[Group == "control"])
+  summarize(ratio_mean_fluorescence = Beta_catenin_mean[Group == "stim"]/
+              Beta_catenin_mean[Group == "control"])
 
 df_final_beta_catenin <- as.data.frame(df_final_beta_catenin)
 
@@ -70,7 +72,7 @@ plot_ratios <- ggplot(df_final_beta_catenin, aes(x=TimePoint, y=ratio_mean_fluor
 #   stat_cor(method = "pearson")
 
 
-plot_correlation <- ggscatter(df_complete, x = "FL2.H.mean", y = "mean_fluorescence",
+plot_correlation <- ggscatter(df_complete, x = "ROS_Mean_TECAN", y = "Beta_catenin_mean",
                               add = "reg.line",  # Add regressin line
                               add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
                               conf.int = TRUE # Add confidence interval
@@ -82,7 +84,7 @@ plot_correlation <- ggscatter(df_complete, x = "FL2.H.mean", y = "mean_fluoresce
 file_name <- paste(output_dir, "/correlation_bcat_ROS1.png", sep="")
 ggsave(filename = file_name, width = (297), height = (210), units = "mm")
 
-plot_correlation2 <- ggscatter(df_complete, x = "FL2.H.mean", y = "mean_fluorescence", color = "Group",
+plot_correlation2 <- ggscatter(df_complete, x = "ROS_Mean_TECAN", y = "Beta_catenin_mean", color = "Group",
                               add = "reg.line",  # Add regressin line
                               palette = "jco",
                               conf.int = TRUE # Add confidence interval
@@ -104,4 +106,18 @@ ggsave(filename = file_name, width = (297), height = (210), units = "mm")
 #     axis.ticks.x = element_blank()) +
 #   ylab("Mean ROS fluorescence in arb. units") +
 #   xlab("Mean Beta-catenin fluorescence in arb. units")
+
+
+
+plot_correlation_ROS <- ggscatter(df_complete, x = "ROS_Mean_TECAN", y = "DCF_ROS_mean",
+                                  add = "reg.line",  # Add regressin line
+                                  add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+                                  conf.int = TRUE # Add confidence interval
+) +
+  stat_cor() +
+  xlab("Mean ROS fluorescence from TECAN reader in arb. units") +
+  ylab("Mean ROS fluorescence from FACS in arb. units")
+
+file_name <- paste(output_dir, "/correlation_ROS_TECAN_FACS.png", sep="")
+ggsave(filename = file_name, width = (297), height = (210), units = "mm")
 

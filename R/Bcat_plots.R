@@ -271,8 +271,11 @@ df_final$TimePoint <- as.factor(df_final$TimePoint)
 
 # Save aggregates data as csv ##############################################
 df_final_output <- df_FACS_filtered %>%
-  select(ID, FL2.H.mean, TimePoint, Group, Well, Experiment) %>%
+  select(ID, FL1.H.mean, FL2.H.mean, TimePoint, Group, Well, Experiment) %>%
   dplyr::filter(Group != "pos")
+
+names(df_final_output)[names(df_final_output) == "FL1.H.mean"] <- "DCF_ROS_mean"
+names(df_final_output)[names(df_final_output) == "FL2.H.mean"] <- "Beta_catenin_mean"
 
 df_final_output$Time <- times[match(df_final_output$ID, dimnames(times)[[1]])]
 df_final_output$Date <- dates[match(df_final_output$ID, dimnames(dates)[[1]])]
