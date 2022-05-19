@@ -70,32 +70,61 @@ for(current_zip_file in recording_files){
     df_data$Channel <- "StimPulse"
     # channel_stimulation_pulse <- paste("CHAN", channels, sep="")
   }else if(length(channels) == 2){
+    
     sd_ch1 <- df_data %>% filter(Channel == channels[1] & VPP <1e3 & VPP > 1e-3) %>% summarise(sd(VPP))
     sd_ch2 <- df_data %>% filter(Channel == channels[2] & VPP <1e3 & VPP > 1e-3) %>% summarise(sd(VPP))
     
-    if(sd_ch1 > sd_ch2){
-      # ch1 was the stimulus
-      ES_channel <- 1
-      FunGen_channel <- 2
-      df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
-      df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
-      
-      channel_stimulation_pulse <- channels[1]
-      channel_function_generator <- channels[2]
-      
-    }else{
-      # ch2 was the stimulus
-      ES_channel <- 2
-      FunGen_channel <- 1
-      df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
-      df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
-      
-      channel_stimulation_pulse <- paste("CHAN", channels[2], sep="")
-      channel_function_generator <- paste("CHAN", channels[1], sep="")
-    }
+    # lowest sd -> function generator
+    # highest sd -> stimulator output
     
-    channel_stimulation_pulse <- ES_channel_name
-    channel_function_generator <- function_generator_channel_name
+    ES_channel <- which(c(sd_ch1, sd_ch2) == max(sd_ch1, sd_ch2))
+    FunGen_channel <- which(c(sd_ch1, sd_ch2) == min(sd_ch1, sd_ch2))
+    
+    df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
+    df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
+    
+    # if(sd_ch1 > sd_ch2){
+    #   # ch1 was the stimulus
+    #   ES_channel <- 1
+    #   FunGen_channel <- 2
+    #   df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
+    #   df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
+    #   
+    #   channel_stimulation_pulse <- channels[1]
+    #   channel_function_generator <- channels[2]
+    #   
+    # }else{
+    #   # ch2 was the stimulus
+    #   ES_channel <- 2
+    #   FunGen_channel <- 1
+    #   df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
+    #   df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
+    #   
+    #   channel_stimulation_pulse <- paste("CHAN", channels[2], sep="")
+    #   channel_function_generator <- paste("CHAN", channels[1], sep="")
+    # }
+    # 
+    # channel_stimulation_pulse <- ES_channel_name
+    # channel_function_generator <- function_generator_channel_name
+    
+  }else if(length(channels) == 3){
+    
+    sd_ch1 <- df_data %>% filter(Channel == channels[1] & VPP <1e3 & VPP > 1e-3) %>% summarise(sd(VPP))
+    sd_ch2 <- df_data %>% filter(Channel == channels[2] & VPP <1e3 & VPP > 1e-3) %>% summarise(sd(VPP))
+    sd_ch3 <- df_data %>% filter(Channel == channels[3] & VPP <1e3 & VPP > 1e-3) %>% summarise(sd(VPP))
+    
+    # lowest sd -> function generator
+    # middle sd -> measurement at resistor
+    # highest sd -> stimulator output
+    
+    ES_channel <- which(c(sd_ch1, sd_ch2, sd_ch3) == max(sd_ch1, sd_ch2, sd_ch3))
+    FunGen_channel <- which(c(sd_ch1, sd_ch2, sd_ch3) == min(sd_ch1, sd_ch2, sd_ch3))
+    resistor_channel <- which(c(sd_ch1, sd_ch2, sd_ch3) != max(sd_ch1, sd_ch2, sd_ch3) & c(sd_ch1, sd_ch2, sd_ch3) != min(sd_ch1, sd_ch2, sd_ch3))
+    
+    df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
+    df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
+    df_data$Channel[df_data$Channel == channels[resistor_channel]]  <- resistor_channel_name
+    
   }else{
     print("More than 2 channels used. Please check.")
   }
@@ -104,13 +133,21 @@ for(current_zip_file in recording_files){
   
   # Plot waveform data #######################################################
   df_data <- getWaveforms(input_file = current_zip_file)
-  df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
-  df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
   
+  if(exists("ES_channel_name")){
+    df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
+  }
+  if(exists("function_generator_channel_name")){
+    df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
+  }
+  if(exists("resistor_channel_name")){
+    df_data$Channel[df_data$Channel == channels[resistor_channel]]  <- resistor_channel_name
+  }
+
   plotWaveforms(input_data = df_data, output_dir = current_output_dir,
                 show_time_in_us = FALSE,
-                channel_function_generator = channel_function_generator,
-                channel_stimulation_pulse = channel_stimulation_pulse,
+                channel_function_generator = function_generator_channel_name,
+                channel_stimulation_pulse = ES_channel_name,
                 voltage_limits_of_plot = 10, filter_stim_off = TRUE,
                 epsilon_for_filtering = 1)
   
