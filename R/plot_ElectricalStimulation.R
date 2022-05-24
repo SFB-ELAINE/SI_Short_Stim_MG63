@@ -83,30 +83,6 @@ for(current_zip_file in recording_files){
     df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
     df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
     
-    # if(sd_ch1 > sd_ch2){
-    #   # ch1 was the stimulus
-    #   ES_channel <- 1
-    #   FunGen_channel <- 2
-    #   df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
-    #   df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
-    #   
-    #   channel_stimulation_pulse <- channels[1]
-    #   channel_function_generator <- channels[2]
-    #   
-    # }else{
-    #   # ch2 was the stimulus
-    #   ES_channel <- 2
-    #   FunGen_channel <- 1
-    #   df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
-    #   df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
-    #   
-    #   channel_stimulation_pulse <- paste("CHAN", channels[2], sep="")
-    #   channel_function_generator <- paste("CHAN", channels[1], sep="")
-    # }
-    # 
-    # channel_stimulation_pulse <- ES_channel_name
-    # channel_function_generator <- function_generator_channel_name
-    
   }else if(length(channels) == 3){
     
     sd_ch1 <- df_data %>% filter(Channel == channels[1] & VPP <1e3 & VPP > 1e-3) %>% summarise(sd(VPP))
@@ -129,7 +105,23 @@ for(current_zip_file in recording_files){
     print("More than 2 channels used. Please check.")
   }
   
-  plotMeasurements(input_data = df_data, output_dir = current_output_dir, vpp_min = 0, vpp_max = 20, vavg_min = -2, vavg_max = 2, plot_title = plot_title)
+  max_voltage <- max(df_data$VPP[df_data$Channel == ES_channel_name &
+                                   df_data$VPP < 1e3])
+  if(is.na(max_voltage)){
+    print("Max voltage is na. Please check")
+  }else if(max_voltage < 10){
+    voltage_limit <- 10
+  }else if(max_voltage < 20){
+    voltage_limit <- 20
+  }else if(max_voltage < 30){
+    voltage_limit <- 30
+  }else if(max_voltage < 40){
+    voltage_limit <- 40
+  }else{
+    voltage_limit <- 1.01*max_voltage
+  }
+  
+  plotMeasurements(input_data = df_data, output_dir = current_output_dir, vpp_min = 0, vpp_max = voltage_limit, vavg_min = -2, vavg_max = 2, plot_title = plot_title)
   
   # Plot waveform data #######################################################
   df_data <- getWaveforms(input_file = current_zip_file)
@@ -143,12 +135,28 @@ for(current_zip_file in recording_files){
   if(exists("resistor_channel_name")){
     df_data$Channel[df_data$Channel == channels[resistor_channel]]  <- resistor_channel_name
   }
+  
+  max_voltage <- max(df_data$U[df_data$Channel == ES_channel_name &
+                                 df_data$U < 1e3])
+  if(is.na(max_voltage)){
+    print("Max voltage is na. Please check")
+  }else if(max_voltage < 10){
+    voltage_limit <- 10
+  }else if(max_voltage < 15){
+    voltage_limit <- 15
+  }else if(max_voltage < 20){
+    voltage_limit <- 20
+  }else if(max_voltage < 30){
+    voltage_limit <- 30
+  }else{
+    voltage_limit <- 1.01*max_voltage
+  }
 
   plotWaveforms(input_data = df_data, output_dir = current_output_dir,
                 show_time_in_us = FALSE,
                 channel_function_generator = function_generator_channel_name,
                 channel_stimulation_pulse = ES_channel_name,
-                voltage_limits_of_plot = 10, filter_stim_off = TRUE,
+                voltage_limits_of_plot = voltage_limit, filter_stim_off = TRUE,
                 epsilon_for_filtering = 1)
   
 }
