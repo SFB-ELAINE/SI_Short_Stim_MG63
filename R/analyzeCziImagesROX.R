@@ -431,6 +431,7 @@ for(i in 0:length(filter_well_number)){
     geom_violin() +
     # stat_boxplot(geom ='errorbar', width = 0.3) +
     geom_boxplot(width=0.05) +
+    stat_summary(fun=mean, geom="point", size = 3, shape=23, color="black", fill="black") +
     facet_wrap(.~ magnification, scale="free") +
     # geom_jitter(color="black", size=0.5, alpha=0.9) +
     #ylim(0,20) +
@@ -448,9 +449,11 @@ for(i in 0:length(filter_well_number)){
   ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_number_of_nuclei_violin", append_text, ".png", sep=""),
          width = 297, height = 210, units = "mm")
   
-  plot_no_nuclei <- ggplot(df_data_dummy, aes(y=number_of_nuclei,
+  plot_no_nuclei <- ggplot(df_data_dummy, aes(x=experiment_group,
+                                              y=number_of_nuclei,
                                               fill=experiment_group)) +
     geom_boxplot() +
+    stat_summary(fun = mean, geom="point", size = 3, shape=23, color="black", fill="black") +
     facet_wrap(.~ magnification, scale="free") +
     theme_bw(base_size = 24) +
     theme(axis.title.y = element_text(size=18),
@@ -477,6 +480,7 @@ for(i in 0:length(filter_well_number)){
                                             x=experiment_group)) +
     geom_violin() +
     geom_boxplot(width=0.05) +
+    stat_summary(fun=mean, geom="point", size = 3, shape=23, color="black", fill="black") +
     facet_wrap(.~ magnification, scale="free") +
     scale_y_continuous(trans='log10') +
     theme_bw(base_size = 24) +
@@ -484,7 +488,7 @@ for(i in 0:length(filter_well_number)){
     ylab("Total corrected red fluorescence\nabove nuclei per number of nuclei") +
     xlab("") +
     ggtitle(paste0(plot_title_red, " above nucleus ", append_text)) +
-    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
   #print(plot_red_nuc)
   
   ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_nuc_per_number_of_nuclei_violin", append_text, ".pdf", sep=""),
@@ -493,9 +497,11 @@ for(i in 0:length(filter_well_number)){
          width = 297, height = 210, units = "mm")
   
   
-  plot_red_nuc <- ggplot(df_data_dummy, aes(y=red_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
+  plot_red_nuc <- ggplot(df_data_dummy, aes(x=experiment_group,
+                                            y=red_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
                                             fill=experiment_group)) +
     geom_boxplot() +
+    stat_summary(fun=mean, geom="point", size = 3, shape=23, color="black", fill="black") +
     #facet_wrap(~end_time, scale="free") +
     facet_wrap(.~ magnification, scale="free") +
     scale_y_continuous(trans='log10') +
@@ -508,7 +514,7 @@ for(i in 0:length(filter_well_number)){
     ylab("Total corrected red fluorescence\nabove nuclei per number of nuclei") +
     xlab("") +
     ggtitle(paste0(plot_title_red, " above nucleus ", append_text)) +
-    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
   #print(plot_red_nuc)
   
   ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_nuc_per_number_of_nuclei", append_text, ".pdf", sep=""),
@@ -524,12 +530,13 @@ for(i in 0:length(filter_well_number)){
     facet_wrap(.~ magnification, scale="free") +
     scale_y_continuous(trans='log10') +
     geom_boxplot(width=0.05) +
+    stat_summary(fun=mean, geom="point", size = 3, shape=23, color="black", fill="black") +
     theme_bw(base_size = 24) +
     theme(axis.title.y = element_text(size=18)) +
     ylab("Total corrected red fluorescence\nin entire cell per number of nuclei") +
     xlab("") +
     ggtitle(paste0(plot_title_red, " in entire cell ", append_text)) +
-    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
   #print(plot_red_cell)
   
   ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_cell_per_number_of_nuclei_violin", append_text, ".pdf", sep=""),
@@ -537,9 +544,11 @@ for(i in 0:length(filter_well_number)){
   ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_cell_per_number_of_nuclei_violin", append_text, ".png", sep=""),
          width = 297, height = 210, units = "mm")
   
-  plot_red_cell <- ggplot(df_data_dummy, aes(y=red_corrected_total_fluorescence_cell_per_no_of_nuclei,
+  plot_red_cell <- ggplot(df_data_dummy, aes(x=experiment_group,
+                                             y=red_corrected_total_fluorescence_cell_per_no_of_nuclei,
                                              fill=experiment_group)) +
     geom_boxplot() +
+    stat_summary(fun=mean, geom="point", size = 3, shape=23, color="black", fill="black") +
     facet_wrap(.~ magnification, scale="free") +
     scale_y_continuous(trans='log10') +
     #facet_wrap(~end_time, scale="free") +
@@ -552,7 +561,7 @@ for(i in 0:length(filter_well_number)){
     ylab("Total corrected red fluorescence\nin entire cell per number of nuclei") +
     xlab("") +
     ggtitle(paste0(plot_title_red, " in entire cell ", append_text)) +
-    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
   #print(plot_red_cell)
   
   ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_cell_per_number_of_nuclei", append_text, ".pdf", sep=""),
@@ -576,7 +585,7 @@ for(i in 0:length(filter_well_number)){
           axis.text.x = element_blank(),
           panel.grid.major.x = element_blank(),
           panel.grid.minor.x = element_blank()) +
-    ggtitle("ROX red ratio in entire cell ", append_text) +
+    ggtitle(paste0("ROX red ratio in entire cell ", append_text)) +
     geom_hline(yintercept=1.0, linetype="dashed", size=2) +
     ylab("Ratio of total corrected red fluorescence\nin entire cell per number of nuclei (Stim/Control)") +
     xlab("")
@@ -604,7 +613,7 @@ for(i in 0:length(filter_well_number)){
           axis.text.x = element_blank(),
           panel.grid.major.x = element_blank(),
           panel.grid.minor.x = element_blank()) +
-    ggtitle("ROX red ratio above nuclei") +
+    ggtitle(paste0("ROX red ratio above nuclei ", append_text)) +
     geom_hline(yintercept=1.0, linetype="dashed", size=2) +
     ylab("Ratio of total corrected red fluorescence\nabove nuclei per number of nuclei (Stim/Control)") +
     xlab("")
@@ -625,6 +634,7 @@ for(i in 0:length(filter_well_number)){
                                               x=experiment_group)) +
     geom_violin() +
     geom_boxplot(width=0.05) +
+    stat_summary(fun=mean, geom="point", size = 3, shape=23, color="black", fill="black") +
     facet_wrap(.~ magnification, scale="free") +
     scale_y_continuous(trans='log10') +
     theme_bw(base_size = 24) +
@@ -632,7 +642,7 @@ for(i in 0:length(filter_well_number)){
     ylab("Total corrected green fluorescence\nabove nuclei per number of nuclei") +
     xlab("") +
     ggtitle(paste0(plot_title_green, " above nucleus ", append_text)) +
-    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
   #print(plot_green_nuc)
   
   ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_nuc_per_number_of_nuclei_violin", append_text, ".pdf", sep=""),
@@ -641,9 +651,11 @@ for(i in 0:length(filter_well_number)){
          width = 297, height = 210, units = "mm")
   
   
-  plot_green_nuc <- ggplot(df_data_dummy, aes(y=green_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
+  plot_green_nuc <- ggplot(df_data_dummy, aes(x=experiment_group,
+                                              y=green_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
                                               fill=experiment_group)) +
     geom_boxplot() +
+    stat_summary(fun=mean, geom="point", size = 3, shape=23, color="black", fill="black") +
     #facet_wrap(~end_time, scale="free") +
     facet_wrap(.~ magnification, scale="free") +
     scale_y_continuous(trans='log10') +
@@ -656,7 +668,7 @@ for(i in 0:length(filter_well_number)){
     ylab("Total corrected green fluorescence\nabove nuclei per number of nuclei") +
     xlab("") +
     ggtitle(paste0(plot_title_green, " above nucleus ", append_text)) +
-    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
   #print(plot_green_nuc)
   
   ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_nuc_per_number_of_nuclei", append_text, ".pdf", sep=""),
@@ -671,12 +683,13 @@ for(i in 0:length(filter_well_number)){
     facet_wrap(.~ magnification, scale="free") +
     scale_y_continuous(trans='log10') +
     geom_boxplot(width=0.05) +
+    stat_summary(fun=mean, geom="point", size = 3, shape=23, color="black", fill="black") +
     theme_bw(base_size = 24) +
     theme(axis.title.y = element_text(size=18)) +
     ylab("Total corrected green fluorescence\nin entire cell per number of nuclei") +
     xlab("") +
     ggtitle(paste0(plot_title_green, " in entire cell ", append_text)) +
-    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
   #print(plot_green_cell)
   
   ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei_violin", append_text, ".pdf", sep=""),
@@ -684,9 +697,11 @@ for(i in 0:length(filter_well_number)){
   ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei_violin", append_text, ".png", sep=""),
          width = 297, height = 210, units = "mm")
   
-  plot_green_cell <- ggplot(df_data_dummy, aes(y=green_corrected_total_fluorescence_cell_per_no_of_nuclei,
+  plot_green_cell <- ggplot(df_data_dummy, aes(x=experiment_group,
+                                               y=green_corrected_total_fluorescence_cell_per_no_of_nuclei,
                                                fill=experiment_group)) +
     geom_boxplot() +
+    stat_summary(fun=mean, geom="point", size = 3, shape=23, color="black", fill="black") +
     facet_wrap(.~ magnification, scale="free") +
     scale_y_continuous(trans='log10') +
     #facet_wrap(~end_time, scale="free") +
@@ -699,7 +714,7 @@ for(i in 0:length(filter_well_number)){
     ylab("Total corrected green fluorescence\nin entire cell per number of nuclei") +
     xlab("") +
     ggtitle(paste0(plot_title_green, " in entire cell ", append_text)) +
-    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
   #print(plot_green_cell)
   
   ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei", append_text, ".pdf", sep=""),
@@ -723,7 +738,7 @@ for(i in 0:length(filter_well_number)){
           axis.text.x = element_blank(),
           panel.grid.major.x = element_blank(),
           panel.grid.minor.x = element_blank()) +
-    ggtitle("ROX green ratio in entire cell ", append_text) +
+    ggtitle(paste0("ROX green ratio in entire cell ", append_text)) +
     geom_hline(yintercept=1.0, linetype="dashed", size=2) +
     ylab("Ratio of total corrected green fluorescence\nin entire cell per number of nuclei (Stim/Control)") +
     xlab("")
@@ -751,7 +766,7 @@ for(i in 0:length(filter_well_number)){
           axis.text.x = element_blank(),
           panel.grid.major.x = element_blank(),
           panel.grid.minor.x = element_blank()) +
-    ggtitle("ROX green ratio above nuclei") +
+    ggtitle(paste0("ROX green ratio above nuclei ", append_text)) +
     geom_hline(yintercept=1.0, linetype="dashed", size=2) +
     ylab("Ratio of total corrected green fluorescence\nabove nuclei per number of nuclei (Stim/Control)") +
     xlab("")
