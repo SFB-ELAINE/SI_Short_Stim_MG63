@@ -194,10 +194,74 @@ df_data$experiment_group[
 df_data$experiment_group[
   grepl(pattern = " kon", x = df_data$fileName, ignore.case = TRUE)] <- "Control"
 
+
+# Add column with information about which experiment_number an experiment belongs to (n)
+df_data$experiment_number <- NA
+number_of_dates <- length(unique(df_data$date))
+number_of_wells <- length(unique(df_data$well_number[!is.na(df_data$well_number)]))
+number_of_independent_experiments <- number_of_dates * number_of_wells
+
+df_data$experiment_number <-  (match(df_data$date, unique(df_data$date))-1) * number_of_wells +
+  df_data$well_number
+
+
 # Reorder columns
 df_data <- df_data %>% 
-  dplyr::relocate(c("date", "experiment_group", "well_number", "image_number", "image_retake", "magnification" ),
+  dplyr::relocate(c("date", "experiment_group", "experiment_number", "well_number", "image_number", "image_retake", "magnification" ),
                   .after = "fileName")
+
+
+# Calculations of additional values to be added to the tibble ##############
+
+# Green: corrected total fluorescence inside the entire cell
+df_data$green_corrected_total_fluorescence_cell <- NA
+df_data$green_corrected_total_fluorescence_cell <-
+  df_data$intensity_sum_green_foreground -
+  (df_data$intensity_mean_green_background*df_data$number_of_pixels_foreground)
+
+# Green: corrected total fluorescence per number of nuclei inside the entire cell
+df_data$green_corrected_total_fluorescence_cell_per_no_of_nuclei <- NA
+df_data$green_corrected_total_fluorescence_cell_per_no_of_nuclei <-
+  df_data$green_corrected_total_fluorescence_cell /
+  df_data$number_of_nuclei
+
+# Green: corrected total fluorescence above the nucleus
+df_data$green_corrected_total_fluorescence_nucleus <- NA
+df_data$green_corrected_total_fluorescence_nucleus <-
+  df_data$intensity_sum_green_nucleus_region -
+  (df_data$intensity_mean_green_background*df_data$number_of_pixels_nucleus_region)
+
+# Green: corrected total fluorescence per number of nuclei above the nucleus
+df_data$green_corrected_total_fluorescence_nucleus_per_no_of_nuclei <- NA
+df_data$green_corrected_total_fluorescence_nucleus_per_no_of_nuclei <-
+  df_data$green_corrected_total_fluorescence_nucleus /
+  df_data$number_of_nuclei
+
+# Red: corrected total fluorescence inside the entire cell
+df_data$red_corrected_total_fluorescence_cell <- NA
+df_data$red_corrected_total_fluorescence_cell <-
+  df_data$intensity_sum_red_foreground -
+  (df_data$intensity_mean_red_background*df_data$number_of_pixels_foreground)
+
+# Red: corrected total fluorescence per number of nuclei inside the entire cell
+df_data$red_corrected_total_fluorescence_cell_per_no_of_nuclei <- NA
+df_data$red_corrected_total_fluorescence_cell_per_no_of_nuclei <-
+  df_data$red_corrected_total_fluorescence_cell /
+  df_data$number_of_nuclei
+
+# Red: corrected total fluorescence above the nucleus
+df_data$red_corrected_total_fluorescence_nucleus <- NA
+df_data$red_corrected_total_fluorescence_nucleus <-
+  df_data$intensity_sum_red_nucleus_region -
+  (df_data$intensity_mean_red_background*df_data$number_of_pixels_nucleus_region)
+
+# Red: corrected total fluorescence per number of nuclei above the nucleus
+df_data$red_corrected_total_fluorescence_nucleus_per_no_of_nuclei <- NA
+df_data$red_corrected_total_fluorescence_nucleus_per_no_of_nuclei <-
+  df_data$red_corrected_total_fluorescence_nucleus /
+  df_data$number_of_nuclei
+
+
 
 # Save final data frames
 write.csv(x = df_data,
@@ -229,9 +293,9 @@ df_data <- df_data %>%
 df_data$magnification <- paste0(df_data$magnification, "x")
 
 
-filter_well_number <- c(1, 2)
+filter_experiment_number <- unique(df_data$experiment_number)
 
-for(i in 0:length(filter_well_number)){
+for(i in 0:length(filter_experiment_number)){
   
   if(i == 0){
     # Do not filter
@@ -240,60 +304,9 @@ for(i in 0:length(filter_well_number)){
   }else{
     # Filter
     df_data_dummy <- df_data %>% 
-      dplyr::filter(well_number == i)
-    append_text <- paste0("(Well ", i, ")")
+      dplyr::filter(experiment_number == i)
+    append_text <- paste0("(Experiment ", i, ")")
   }
-  
-  
-  # Calculations of additional values to be added to the tibble ##############
-  
-  # Green: corrected total fluorescence inside the entire cell
-  df_data_dummy$green_corrected_total_fluorescence_cell <- NA
-  df_data_dummy$green_corrected_total_fluorescence_cell <-
-    df_data_dummy$intensity_sum_green_foreground -
-    (df_data_dummy$intensity_mean_green_background*df_data_dummy$number_of_pixels_foreground)
-  
-  # Green: corrected total fluorescence per number of nuclei inside the entire cell
-  df_data_dummy$green_corrected_total_fluorescence_cell_per_no_of_nuclei <- NA
-  df_data_dummy$green_corrected_total_fluorescence_cell_per_no_of_nuclei <-
-    df_data_dummy$green_corrected_total_fluorescence_cell /
-    df_data_dummy$number_of_nuclei
-  
-  # Green: corrected total fluorescence above the nucleus
-  df_data_dummy$green_corrected_total_fluorescence_nucleus <- NA
-  df_data_dummy$green_corrected_total_fluorescence_nucleus <-
-    df_data_dummy$intensity_sum_green_nucleus_region -
-    (df_data_dummy$intensity_mean_green_background*df_data_dummy$number_of_pixels_nucleus_region)
-  
-  # Green: corrected total fluorescence per number of nuclei above the nucleus
-  df_data_dummy$green_corrected_total_fluorescence_nucleus_per_no_of_nuclei <- NA
-  df_data_dummy$green_corrected_total_fluorescence_nucleus_per_no_of_nuclei <-
-    df_data_dummy$green_corrected_total_fluorescence_nucleus /
-    df_data_dummy$number_of_nuclei
-  
-  # Red: corrected total fluorescence inside the entire cell
-  df_data_dummy$red_corrected_total_fluorescence_cell <- NA
-  df_data_dummy$red_corrected_total_fluorescence_cell <-
-    df_data_dummy$intensity_sum_red_foreground -
-    (df_data_dummy$intensity_mean_red_background*df_data_dummy$number_of_pixels_foreground)
-  
-  # Red: corrected total fluorescence per number of nuclei inside the entire cell
-  df_data_dummy$red_corrected_total_fluorescence_cell_per_no_of_nuclei <- NA
-  df_data_dummy$red_corrected_total_fluorescence_cell_per_no_of_nuclei <-
-    df_data_dummy$red_corrected_total_fluorescence_cell /
-    df_data_dummy$number_of_nuclei
-  
-  # Red: corrected total fluorescence above the nucleus
-  df_data_dummy$red_corrected_total_fluorescence_nucleus <- NA
-  df_data_dummy$red_corrected_total_fluorescence_nucleus <-
-    df_data_dummy$intensity_sum_red_nucleus_region -
-    (df_data_dummy$intensity_mean_red_background*df_data_dummy$number_of_pixels_nucleus_region)
-  
-  # Red: corrected total fluorescence per number of nuclei above the nucleus
-  df_data_dummy$red_corrected_total_fluorescence_nucleus_per_no_of_nuclei <- NA
-  df_data_dummy$red_corrected_total_fluorescence_nucleus_per_no_of_nuclei <-
-    df_data_dummy$red_corrected_total_fluorescence_nucleus /
-    df_data_dummy$number_of_nuclei
   
   
   # Grouping results #########################################################
@@ -782,6 +795,123 @@ for(i in 0:length(filter_well_number)){
 }
 
 
+# Get ratios Stim/control looking at every experiment number seperately ----
+df_result <- df_data %>% 
+  dplyr::group_by(experiment_number, experiment_group) %>% 
+  dplyr::summarise(green_in_cell_per_nuc = mean(green_corrected_total_fluorescence_cell_per_no_of_nuclei),
+                   green_in_nuc_per_nuc = mean(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei),
+                   red_in_cell_per_nuc = mean(red_corrected_total_fluorescence_cell_per_no_of_nuclei),
+                   red_in_nuc_per_nuc = mean(red_corrected_total_fluorescence_nucleus_per_no_of_nuclei))
+
+write.csv(x = df_result,
+          file = paste(output_dir_data,"image_analysis_aggregated.csv", sep=""),
+          row.names = FALSE)
+write.csv2(x = df_result,
+           file = paste(output_dir_data,"image_analysis_aggregated_de.csv", sep=""),
+           row.names = FALSE)
+
+df_result_gathered <- df_result %>%
+  tidyr::gather(key, value, -experiment_number, -experiment_group)
+  
+df_result_ratio <- df_result_gathered %>% 
+  dplyr::filter(experiment_group != "PositiveControl") %>% 
+  dplyr::group_by(experiment_number, key) %>% 
+  dplyr::mutate(ratio = 1/((sum(value)/value)-1))
+
+df_result_ratio <- df_result_ratio %>% 
+  dplyr::filter(experiment_group == "Stimulation") %>% 
+  dplyr::select(experiment_number, key, ratio)
 
 
+df_result_ratio <- df_result_ratio %>%  
+  group_by(key) %>% 
+  summarize(mean_ratio=mean(ratio), 
+            sd_ratio=sd(ratio), 
+            N_ratio=n(), 
+            se=sd_ratio/sqrt(N_ratio)
+  ) 
+
+
+# Ratio (Stim/Control) of all fluorescence
+plot_ratios <- ggplot(df_result_ratio, aes(x=key, y=mean_ratio)) +
+  geom_point(size = 6) +
+  geom_errorbar(aes(ymin=mean_ratio-se,
+                    ymax=mean_ratio+se),
+                size = 1.5, width=.2) +
+  ylim(0,2) +
+  # xlim(-2,2) +
+  theme_bw(base_size = 24) +
+  theme(axis.title.y=element_text(size=18),
+        #axis.text.x = element_blank(),
+        # axis.ticks.x = element_blank(),
+        # axis.text.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.title.x=element_blank()) +
+  scale_x_discrete(labels=c("green_in_cell_per_nuc" = "Green\nin cell",
+                            "green_in_nuc_per_nuc" = "Green\nin nucleus",
+                            "red_in_cell_per_nuc" = "Red\nin cell",
+                            "red_in_nuc_per_nuc" = "Red\nin nucleus")) +
+  ggtitle("Fluorescence ratios (Stimulation/Control)") +
+  geom_hline(yintercept=1.0, linetype="dashed", size=2) +
+  ylab("Ratio of total corrected fluorescence\nper number of nuclei (mean+-SE)")
+
+#print(plot_ratios)
+
+ggsave(filename = paste(output_dir_plots, "all_ratios_StimOverControl_combined.pdf", sep=""),
+       width = 297, height = 210, units = "mm")
+ggsave(filename = paste(output_dir_plots,"all_ratios_StimOverControl_combined.png", sep=""),
+       width = 297, height = 210, units = "mm")
+
+
+# Get ratios Stim/control looking at every experiment number seperately ----
+df_result_ratio <- df_result_gathered %>% 
+  dplyr::filter(experiment_group != "Stimulation") %>% 
+  dplyr::group_by(experiment_number, key) %>% 
+  dplyr::mutate(ratio = 1/((sum(value)/value)-1))
+
+df_result_ratio <- df_result_ratio %>% 
+  dplyr::filter(experiment_group == "PositiveControl") %>% 
+  dplyr::select(experiment_number, key, ratio)
+
+
+df_result_ratio <- df_result_ratio %>%  
+  group_by(key) %>% 
+  summarize(mean_ratio=mean(ratio), 
+            sd_ratio=sd(ratio), 
+            N_ratio=n(), 
+            se=sd_ratio/sqrt(N_ratio)
+  ) 
+
+
+# Ratio (Positive Control/Control) of all fluorescence
+plot_ratios <- ggplot(df_result_ratio, aes(x=key, y=mean_ratio)) +
+  geom_point(size = 6) +
+  geom_errorbar(aes(ymin=mean_ratio-se,
+                    ymax=mean_ratio+se),
+                size = 1.5, width=.2) +
+  ylim(0,10) +
+  # xlim(-2,2) +
+  theme_bw(base_size = 24) +
+  theme(axis.title.y=element_text(size=18),
+        #axis.text.x = element_blank(),
+        # axis.ticks.x = element_blank(),
+        # axis.text.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.title.x=element_blank()) +
+  scale_x_discrete(labels=c("green_in_cell_per_nuc" = "Green\nin cell",
+                            "green_in_nuc_per_nuc" = "Green\nin nucleus",
+                            "red_in_cell_per_nuc" = "Red\nin cell",
+                            "red_in_nuc_per_nuc" = "Red\nin nucleus")) +
+  ggtitle("Fluorescence ratios (Positive Control/Control)") +
+  geom_hline(yintercept=1.0, linetype="dashed", size=2) +
+  ylab("Ratio of total corrected fluorescence\nper number of nuclei (mean+-SE)")
+
+#print(plot_ratios)
+
+ggsave(filename = paste(output_dir_plots, "all_ratios_PosControlOverControl_combined.pdf", sep=""),
+       width = 297, height = 210, units = "mm")
+ggsave(filename = paste(output_dir_plots,"all_ratios_PosControlOverControl_combined.png", sep=""),
+       width = 297, height = 210, units = "mm")
 
