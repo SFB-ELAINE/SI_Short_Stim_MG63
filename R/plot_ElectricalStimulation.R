@@ -2,7 +2,7 @@
 # oscilloscope recordings (zipped files)              ++++++++++++++++++++++
 # Author: Kai Budde
 # Created: 2022/05/18
-# Last changed: 2022/05/19
+# Last changed: 2022/06/15
 
 # Delete everything in the environment
 rm(list = ls())
@@ -152,7 +152,8 @@ for(current_zip_file in recording_files){
     voltage_limit <- 1.01*max_voltage
   }
 
-  plotWaveforms(input_data = df_data, output_dir = current_output_dir,
+  plotWaveforms(input_data = df_data,
+                output_dir = current_output_dir,
                 show_time_in_us = FALSE,
                 channel_function_generator = function_generator_channel_name,
                 channel_stimulation_pulse = ES_channel_name,
