@@ -137,7 +137,7 @@ rm(list = c("df_data_dummy", "df_metadata_dummy", "i"))
 
 # Data cleaning and add additional meta information ########################
 output_dir_data <- paste0(output_dir, "data/")
-dir.create(output_dir, output_dir_data = FALSE)
+dir.create(output_dir_data, showWarnings = FALSE)
 
 # Delete all rows that do not contain "NA" in manual_quality_check column anymore
 df_data <- df_data[is.na(df_data$manual_quality_check),]
@@ -273,12 +273,12 @@ print("ROX red inside the entire cell per number of nuclei")
 df_red_cell <- df_data %>% 
   filter(experiment_group != "PositiveControl") %>% 
   group_by(magnification, experiment_group) %>%
-  summarise(mean_intensity = mean(ROX_red_corrected_total_fluorescence_cell_per_no_of_nuclei),
+  summarise(mean_intensity = mean(red_corrected_total_fluorescence_cell_per_no_of_nuclei),
             uncertainty_intensity = qt(p = c(0.975),
-                                       df = length(ROX_red_corrected_total_fluorescence_cell_per_no_of_nuclei)-1) *
-              sd(ROX_red_corrected_total_fluorescence_cell_per_no_of_nuclei)/
-              length(ROX_red_corrected_total_fluorescence_cell_per_no_of_nuclei),
-            number_of_measurements= length(ROX_red_corrected_total_fluorescence_cell_per_no_of_nuclei))
+                                       df = length(red_corrected_total_fluorescence_cell_per_no_of_nuclei)-1) *
+              sd(red_corrected_total_fluorescence_cell_per_no_of_nuclei)/
+              length(red_corrected_total_fluorescence_cell_per_no_of_nuclei),
+            number_of_measurements= length(red_corrected_total_fluorescence_cell_per_no_of_nuclei))
 
 df_red_cell_mean <- select(df_red_cell, select=-c(uncertainty_intensity)) %>% tidyr::spread(key = experiment_group, value = mean_intensity)
 names(df_red_cell_mean)[names(df_red_cell_mean) == "Control"] <- "mean_control"
@@ -311,12 +311,12 @@ print("ROX green above/in nuclei per number of nuclei")
 df_green_nuc <- df_data %>% 
   filter(experiment_group != "PositiveControl") %>% 
   group_by(magnification, experiment_group) %>%
-  summarise(mean_intensity = mean(ROX_green_corrected_total_fluorescence_nucleus_per_no_of_nuclei),
+  summarise(mean_intensity = mean(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei),
             uncertainty_intensity = qt(p = c(0.975),
-                                       df = length(ROX_green_corrected_total_fluorescence_nucleus_per_no_of_nuclei)-1) *
-              sd(ROX_green_corrected_total_fluorescence_nucleus_per_no_of_nuclei)/
-              length(ROX_green_corrected_total_fluorescence_nucleus_per_no_of_nuclei),
-            number_of_measurements= length(ROX_green_corrected_total_fluorescence_nucleus_per_no_of_nuclei))
+                                       df = length(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei)-1) *
+              sd(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei)/
+              length(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei),
+            number_of_measurements= length(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei))
 
 df_green_nuc_mean <- select(df_green_nuc, select=-c(uncertainty_intensity)) %>% tidyr::spread(key = experiment_group, value = mean_intensity)
 names(df_green_nuc_mean)[names(df_green_nuc_mean) == "Control"] <- "mean_control"
@@ -338,12 +338,12 @@ print("ROX green inside the entire cell per number of nuclei")
 df_green_cell <- df_data %>% 
   filter(experiment_group != "PositiveControl") %>% 
   group_by(magnification, experiment_group) %>%
-  summarise(mean_intensity = mean(ROX_green_corrected_total_fluorescence_cell_per_no_of_nuclei),
+  summarise(mean_intensity = mean(green_corrected_total_fluorescence_cell_per_no_of_nuclei),
             uncertainty_intensity = qt(p = c(0.975),
-                                       df = length(ROX_green_corrected_total_fluorescence_cell_per_no_of_nuclei)-1) *
-              sd(ROX_green_corrected_total_fluorescence_cell_per_no_of_nuclei)/
-              length(ROX_green_corrected_total_fluorescence_cell_per_no_of_nuclei),
-            number_of_measurements= length(ROX_green_corrected_total_fluorescence_cell_per_no_of_nuclei))
+                                       df = length(green_corrected_total_fluorescence_cell_per_no_of_nuclei)-1) *
+              sd(green_corrected_total_fluorescence_cell_per_no_of_nuclei)/
+              length(green_corrected_total_fluorescence_cell_per_no_of_nuclei),
+            number_of_measurements= length(green_corrected_total_fluorescence_cell_per_no_of_nuclei))
 
 df_green_cell_mean <- select(df_green_cell, select=-c(uncertainty_intensity)) %>% tidyr::spread(key = experiment_group, value = mean_intensity)
 names(df_green_cell_mean)[names(df_green_cell_mean) == "Control"] <- "mean_control"
@@ -379,6 +379,22 @@ df_green_cell_result$uncertainty_stim_over_control <- df_green_cell_result$uncer
 output_dir_plots <- paste0(output_dir, "plots/")
 dir.create(output_dir_plots, showWarnings = FALSE)
 
+
+if(i == "BetaCatenin_Actin"){
+  plot_title_nuc <- "Beta Catenin and Actin"
+  plot_title_green <- "Actin"
+  plot_title_red <- "Beta Catenin"
+}else if(i == "Nestin_Ki"){
+  plot_title_nuc <- "Nestin and Ki67"
+  plot_title_green <- "Nestin"
+  plot_title_red <- "Ki67"
+}else{
+  plot_title_nuc <- "unknown"
+  plot_title_green <- "unknown"
+}
+
+
+
 # Filter experiment group = NA
 df_data <- df_data %>% 
   dplyr::filter(!is.na(experiment_group))
@@ -412,7 +428,7 @@ ggsave(filename = paste(output_dir_plots, "number_of_nuclei.png", sep="/"),
 # ROX red
 
 # Total corrected fluorescence per number of nuclei
-plot_ROX_red <- ggplot(df_data, aes(y=ROX_red_corrected_total_fluorescence_cell_per_no_of_nuclei,
+plot_red <- ggplot(df_data, aes(y=red_corrected_total_fluorescence_cell_per_no_of_nuclei,
                                     fill=experiment_group)) +
   geom_boxplot() +
   #facet_wrap(~end_time, scale="free") +
@@ -426,7 +442,7 @@ plot_ROX_red <- ggplot(df_data, aes(y=ROX_red_corrected_total_fluorescence_cell_
   xlab("") +
   ggtitle("ROX red in entire cell") +
   scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
-#print(plot_ROX_red)
+#print(plot_red)
 
 ggsave(filename = paste(output_dir_plots, "ROXred_cell_per_number_of_nuclei.pdf", sep="/"),
        width = 297, height = 210, units = "mm")
@@ -435,7 +451,7 @@ ggsave(filename = paste(output_dir_plots, "ROXred_cell_per_number_of_nuclei.png"
 
 
 # Ratio of ROX red in cell per number of nuclei for Stim/Control
-plot_ROX_red_ratio <- ggplot(df_red_cell_result, aes(x=0, y=stim_over_control)) +
+plot_red_ratio <- ggplot(df_red_cell_result, aes(x=0, y=stim_over_control)) +
   geom_point(size = 6) +
   geom_errorbar(aes(ymin=stim_over_control-uncertainty_stim_over_control,
                     ymax=stim_over_control+uncertainty_stim_over_control),
@@ -454,7 +470,7 @@ plot_ROX_red_ratio <- ggplot(df_red_cell_result, aes(x=0, y=stim_over_control)) 
   ylab("Ratio of corrected total fluorescence of ROX red\nin entire cell per number of nuclei (Stim/Control)") +
   xlab("")
 
-#print(plot_ROX_red_ratio)
+#print(plot_red_ratio)
 
 ggsave(filename = paste(output_dir_plots, "ROXred_cell_per_number_of_nuclei_ratio.pdf", sep="/"),
        width = 297, height = 210, units = "mm")
@@ -468,7 +484,7 @@ ggsave(filename = paste(output_dir_plots, "ROXred_cell_per_number_of_nuclei_rati
 # ROX green
 
 # Total corrected fluorescence above nuclei per number of nuclei
-plot_ROX_green_nuc <- ggplot(df_data, aes(y=ROX_green_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
+plot_green_nuc <- ggplot(df_data, aes(y=green_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
                                     fill=experiment_group)) +
   geom_boxplot() +
   #facet_wrap(~end_time, scale="free") +
@@ -482,7 +498,7 @@ plot_ROX_green_nuc <- ggplot(df_data, aes(y=ROX_green_corrected_total_fluorescen
   xlab("") +
   ggtitle("ROX green above nucleus") +
   scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
-#print(plot_ROX_green_nuc)
+#print(plot_green_nuc)
 
 ggsave(filename = paste(output_dir_plots, "ROXgreen_nuc_per_number_of_nuclei.pdf", sep="/"),
        width = 297, height = 210, units = "mm")
@@ -491,7 +507,7 @@ ggsave(filename = paste(output_dir_plots, "ROXgreen_nuc_per_number_of_nuclei.png
 
 
 # Total corrected fluorescence in entire cell per number of nuclei
-plot_ROX_green_cell <- ggplot(df_data, aes(y=ROX_green_corrected_total_fluorescence_cell_per_no_of_nuclei,
+plot_green_cell <- ggplot(df_data, aes(y=green_corrected_total_fluorescence_cell_per_no_of_nuclei,
                                           fill=experiment_group)) +
   geom_boxplot() +
   #facet_wrap(~end_time, scale="free") +
@@ -505,7 +521,7 @@ plot_ROX_green_cell <- ggplot(df_data, aes(y=ROX_green_corrected_total_fluoresce
   xlab("") +
   ggtitle("ROX green in entire cell") +
   scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
-#print(plot_ROX_green_cell)
+#print(plot_green_cell)
 
 ggsave(filename = paste(output_dir_plots, "ROXgreen_cell_per_number_of_nuclei.pdf", sep="/"),
        width = 297, height = 210, units = "mm")
@@ -514,7 +530,7 @@ ggsave(filename = paste(output_dir_plots, "ROXgreen_cell_per_number_of_nuclei.pn
 
 
 # Total corrected fluorescence above nuclei per number of nuclei
-plot_ROX_green_nuc <- ggplot(df_data, aes(y=ROX_green_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
+plot_green_nuc <- ggplot(df_data, aes(y=green_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
                                            fill=experiment_group)) +
   geom_boxplot() +
   #facet_wrap(~end_time, scale="free") +
@@ -528,7 +544,7 @@ plot_ROX_green_nuc <- ggplot(df_data, aes(y=ROX_green_corrected_total_fluorescen
   xlab("") +
   ggtitle("ROX green above nuclei") +
   scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
-#print(plot_ROX_green_nuc)
+#print(plot_green_nuc)
 
 ggsave(filename = paste(output_dir_plots, "ROXgreen_nuc_per_number_of_nuclei.pdf", sep="/"),
        width = 297, height = 210, units = "mm")
