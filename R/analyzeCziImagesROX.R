@@ -214,505 +214,559 @@ write.csv2(x = df_metadata,
            file = paste(output_dir_data,"summary_metadata_complete_de.csv", sep=""),
            row.names = FALSE)
 
-# Calculations of additional values to be added to the tibble ##############
-
-# Green: corrected total fluorescence inside the entire cell
-df_data$green_corrected_total_fluorescence_cell <- NA
-df_data$green_corrected_total_fluorescence_cell <-
-  df_data$intensity_sum_green_foreground -
-  (df_data$intensity_mean_green_background*df_data$number_of_pixels_foreground)
-
-# Green: corrected total fluorescence per number of nuclei inside the entire cell
-df_data$green_corrected_total_fluorescence_cell_per_no_of_nuclei <- NA
-df_data$green_corrected_total_fluorescence_cell_per_no_of_nuclei <-
-  df_data$green_corrected_total_fluorescence_cell /
-  df_data$number_of_nuclei
-
-# Green: corrected total fluorescence above the nucleus
-df_data$green_corrected_total_fluorescence_nucleus <- NA
-df_data$green_corrected_total_fluorescence_nucleus <-
-  df_data$intensity_sum_green_nucleus_region -
-  (df_data$intensity_mean_green_background*df_data$number_of_pixels_nucleus_region)
-
-# Green: corrected total fluorescence per number of nuclei above the nucleus
-df_data$green_corrected_total_fluorescence_nucleus_per_no_of_nuclei <- NA
-df_data$green_corrected_total_fluorescence_nucleus_per_no_of_nuclei <-
-  df_data$green_corrected_total_fluorescence_nucleus /
-  df_data$number_of_nuclei
-
-# Red: corrected total fluorescence inside the entire cell
-df_data$red_corrected_total_fluorescence_cell <- NA
-df_data$red_corrected_total_fluorescence_cell <-
-  df_data$intensity_sum_red_foreground -
-  (df_data$intensity_mean_red_background*df_data$number_of_pixels_foreground)
-
-# Red: corrected total fluorescence per number of nuclei inside the entire cell
-df_data$red_corrected_total_fluorescence_cell_per_no_of_nuclei <- NA
-df_data$red_corrected_total_fluorescence_cell_per_no_of_nuclei <-
-  df_data$red_corrected_total_fluorescence_cell /
-  df_data$number_of_nuclei
-
-# Red: corrected total fluorescence above the nucleus
-df_data$red_corrected_total_fluorescence_nucleus <- NA
-df_data$red_corrected_total_fluorescence_nucleus <-
-  df_data$intensity_sum_red_nucleus_region -
-  (df_data$intensity_mean_red_background*df_data$number_of_pixels_nucleus_region)
-
-# Red: corrected total fluorescence per number of nuclei above the nucleus
-df_data$red_corrected_total_fluorescence_nucleus_per_no_of_nuclei <- NA
-df_data$red_corrected_total_fluorescence_nucleus_per_no_of_nuclei <-
-  df_data$red_corrected_total_fluorescence_nucleus /
-  df_data$number_of_nuclei
 
 
-# Grouping results #########################################################
-
-# ROX red inside entire cells
-print("ROX red inside the entire cell per number of nuclei")
-# Calculate mean and standard error of mean
-df_red_cell <- df_data %>% 
-  filter(experiment_group != "PositiveControl") %>% 
-  group_by(magnification, experiment_group) %>%
-  summarise(mean_intensity = mean(red_corrected_total_fluorescence_cell_per_no_of_nuclei),
-            uncertainty_intensity = qt(p = c(0.975),
-                                       df = length(red_corrected_total_fluorescence_cell_per_no_of_nuclei)-1) *
-              sd(red_corrected_total_fluorescence_cell_per_no_of_nuclei)/
-              length(red_corrected_total_fluorescence_cell_per_no_of_nuclei),
-            number_of_measurements= length(red_corrected_total_fluorescence_cell_per_no_of_nuclei))
-
-df_red_cell_mean <- select(df_red_cell, select=-c(uncertainty_intensity)) %>% tidyr::spread(key = experiment_group, value = mean_intensity)
-names(df_red_cell_mean)[names(df_red_cell_mean) == "Control"] <- "mean_control"
-names(df_red_cell_mean)[names(df_red_cell_mean) == "Stimulation"] <- "mean_stim"
-# names(df_red_cell_mean)[names(df_red_cell_mean) == "PositiveControl"] <- "mean_positiveControl"
-
-df_red_cell_uncertainty <- select(df_red_cell, select=-c(mean_intensity)) %>% tidyr::spread(key = experiment_group, value = uncertainty_intensity)
-names(df_red_cell_uncertainty)[names(df_red_cell_uncertainty) == "Control"] <- "uncertainty_control"
-names(df_red_cell_uncertainty)[names(df_red_cell_uncertainty) == "Stimulation"] <- "uncertainty_stim"
-# names(df_red_cell_uncertainty)[names(df_red_cell_uncertainty) == "PositiveControl"] <- "uncertainty_positiveControl"
-
-df_red_cell_result <- merge(df_red_cell_mean, df_red_cell_uncertainty, by=intersect(names(df_red_cell_mean), names(df_red_cell_uncertainty)))
-
-current_row <- !is.na(df_red_cell_result$mean_control)
-df_red_cell_result$stim_over_control[current_row] <- df_red_cell_result$mean_stim[current_row] / df_red_cell_result$mean_control[current_row]
-df_red_cell_result$uncertainty_stim_over_control[current_row] <- df_red_cell_result$uncertainty_stim[current_row] / df_red_cell_result$mean_control[current_row] +
-  (df_red_cell_result$mean_stim[current_row] * df_red_cell_result$uncertainty_control[current_row])/
-  (df_red_cell_result$mean_control[current_row] * df_red_cell_result$mean_control[current_row])
-
-# current_row2 <- is.na(df_red_cell_result$mean_control)
-# df_red_cell_result$positiveControl_over_control[current_row2] <- df_red_cell_result$mean_positiveControl[current_row2] / df_red_cell_result$mean_control[current_row]
-# df_red_cell_result$uncertainty_positiveControl_over_control[current_row2] <- df_red_cell_result$uncertainty_positiveControl[current_row2] / df_red_cell_result$mean_control[current_row] +
-#   (df_red_cell_result$mean_positiveControl[current_row2] * df_red_cell_result$uncertainty_control[current_row])/
-#   (df_red_cell_result$mean_control[current_row] * df_red_cell_result$mean_control[current_row])
-
-# ROX green inside nucleus
-
-print("ROX green above/in nuclei per number of nuclei")
-# Calculate mean and standard error of mean
-df_green_nuc <- df_data %>% 
-  filter(experiment_group != "PositiveControl") %>% 
-  group_by(magnification, experiment_group) %>%
-  summarise(mean_intensity = mean(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei),
-            uncertainty_intensity = qt(p = c(0.975),
-                                       df = length(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei)-1) *
-              sd(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei)/
-              length(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei),
-            number_of_measurements= length(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei))
-
-df_green_nuc_mean <- select(df_green_nuc, select=-c(uncertainty_intensity)) %>% tidyr::spread(key = experiment_group, value = mean_intensity)
-names(df_green_nuc_mean)[names(df_green_nuc_mean) == "Control"] <- "mean_control"
-names(df_green_nuc_mean)[names(df_green_nuc_mean) == "Stimulation"] <- "mean_stim"
-
-df_green_nuc_uncertainty <- select(df_green_nuc, select=-c(mean_intensity)) %>% tidyr::spread(key = experiment_group, value = uncertainty_intensity)
-names(df_green_nuc_uncertainty)[names(df_green_nuc_uncertainty) == "Control"] <- "uncertainty_control"
-names(df_green_nuc_uncertainty)[names(df_green_nuc_uncertainty) == "Stimulation"] <- "uncertainty_stim"
-
-df_green_nuc_result <- merge(df_green_nuc_mean, df_green_nuc_uncertainty, by=intersect(names(df_green_nuc_mean), names(df_green_nuc_uncertainty)))
-
-df_green_nuc_result$stim_over_control <- df_green_nuc_result$mean_stim / df_green_nuc_result$mean_control
-df_green_nuc_result$uncertainty_stim_over_control <- df_green_nuc_result$uncertainty_stim / df_green_nuc_result$mean_control +
-  (df_green_nuc_result$mean_stim*df_green_nuc_result$uncertainty_control)/(df_green_nuc_result$mean_control*df_green_nuc_result$mean_control)
-
-# ROX green inside entire cells
-print("ROX green inside the entire cell per number of nuclei")
-# Calculate mean and standard error of mean
-df_green_cell <- df_data %>% 
-  filter(experiment_group != "PositiveControl") %>% 
-  group_by(magnification, experiment_group) %>%
-  summarise(mean_intensity = mean(green_corrected_total_fluorescence_cell_per_no_of_nuclei),
-            uncertainty_intensity = qt(p = c(0.975),
-                                       df = length(green_corrected_total_fluorescence_cell_per_no_of_nuclei)-1) *
-              sd(green_corrected_total_fluorescence_cell_per_no_of_nuclei)/
-              length(green_corrected_total_fluorescence_cell_per_no_of_nuclei),
-            number_of_measurements= length(green_corrected_total_fluorescence_cell_per_no_of_nuclei))
-
-df_green_cell_mean <- select(df_green_cell, select=-c(uncertainty_intensity)) %>% tidyr::spread(key = experiment_group, value = mean_intensity)
-names(df_green_cell_mean)[names(df_green_cell_mean) == "Control"] <- "mean_control"
-names(df_green_cell_mean)[names(df_green_cell_mean) == "Stimulation"] <- "mean_stim"
-
-df_green_cell_uncertainty <- select(df_green_cell, select=-c(mean_intensity)) %>% tidyr::spread(key = experiment_group, value = uncertainty_intensity)
-names(df_green_cell_uncertainty)[names(df_green_cell_uncertainty) == "Control"] <- "uncertainty_control"
-names(df_green_cell_uncertainty)[names(df_green_cell_uncertainty) == "Stimulation"] <- "uncertainty_stim"
-
-df_green_cell_result <- merge(df_green_cell_mean, df_green_cell_uncertainty, by=intersect(names(df_green_cell_mean), names(df_green_cell_uncertainty)))
-df_green_cell_result$stim_over_control <- df_green_cell_result$mean_stim / df_green_cell_result$mean_control
-df_green_cell_result$uncertainty_stim_over_control <- df_green_cell_result$uncertainty_stim / df_green_cell_result$mean_control +
-  (df_green_cell_result$mean_stim*df_green_cell_result$uncertainty_control)/(df_green_cell_result$mean_control*df_green_cell_result$mean_control)
-
-# Beta-Actin
-# print("Beta-Actin inside/above nuclei per number of nuclei")
-# df_green_nuc <- group_by(df_data, magnification, experiment_group) %>%
-#   summarise(mean_intensity = mean(intensity_sum_green_nucleus_region_per_no_of_nuclei))
-# print(df_green_nuc)
-#
-# print("Beta-Actin outside of nuclei per number of nuclei")
-# df_green_cyt <- group_by(df_data, magnification, experiment_group) %>%
-#   summarise(mean_intensity = mean(intensity_sum_green_outside_of_nucleus_region_per_no_of_nuclei))
-# print(df_green_cyt)
-#
-# print("Beta-Actin in entire image per number of nuclei")
-# df_green <- group_by(df_data, magnification, experiment_group) %>%
-#   summarise(mean_intensity = mean(intensity_sum_green_per_no_of_nuclei))
-# print(df_green)
 
 
-# Plotting #################################################################
-output_dir_plots <- paste0(output_dir, "plots/")
-dir.create(output_dir_plots, showWarnings = FALSE)
 
-
-if(i == "BetaCatenin_Actin"){
-  plot_title_nuc <- "Beta Catenin and Actin"
-  plot_title_green <- "Actin"
-  plot_title_red <- "Beta Catenin"
-}else if(i == "Nestin_Ki"){
-  plot_title_nuc <- "Nestin and Ki67"
-  plot_title_green <- "Nestin"
-  plot_title_red <- "Ki67"
-}else{
-  plot_title_nuc <- "unknown"
-  plot_title_green <- "unknown"
-}
-
-
+# Filter data frame and then calculate addition values and plots them ######
 
 # Filter experiment group = NA
 df_data <- df_data %>% 
   dplyr::filter(!is.na(experiment_group))
 
-# Number (no) of nuclei per image (blue)
-df_data$experiment_group <- factor(df_data$experiment_group, levels = c("Control", "Stimulation", "PositiveControl"))
-
-plot_no_nuclei <- ggplot(df_data, aes(y=number_of_nuclei,
-                                      fill=experiment_group)) +
-  geom_boxplot() +
-  #facet_wrap(~end_time, scale="free") +
-  theme_bw(base_size = 24) +
-  theme(axis.title.y = element_text(size=18),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank()) +
-  ylab("Number of nuclei per image") +
-  xlab("") +
-  ggtitle("Number of nuclei") +
-  scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
-#print(plot_no_nuclei)
-
-ggsave(filename = paste(output_dir_plots, "number_of_nuclei.pdf", sep="/"),
-       width = 297, height = 210, units = "mm")
-ggsave(filename = paste(output_dir_plots, "number_of_nuclei.png", sep="/"),
-       width = 297, height = 210, units = "mm")
+# Add "x" to magnification column
+df_data$magnification <- paste0(df_data$magnification, "x")
 
 
+filter_well_number <- c(1, 2)
 
-# ROX red
+for(i in 0:length(filter_well_number)){
+  
+  if(i == 0){
+    # Do not filter
+    df_data_dummy <- df_data
+    append_text <- ""
+  }else{
+    # Filter
+    df_data_dummy <- df_data %>% 
+      dplyr::filter(well_number == i)
+    append_text <- paste0("(Well ", i, ")")
+  }
+  
+  
+  # Calculations of additional values to be added to the tibble ##############
+  
+  # Green: corrected total fluorescence inside the entire cell
+  df_data_dummy$green_corrected_total_fluorescence_cell <- NA
+  df_data_dummy$green_corrected_total_fluorescence_cell <-
+    df_data_dummy$intensity_sum_green_foreground -
+    (df_data_dummy$intensity_mean_green_background*df_data_dummy$number_of_pixels_foreground)
+  
+  # Green: corrected total fluorescence per number of nuclei inside the entire cell
+  df_data_dummy$green_corrected_total_fluorescence_cell_per_no_of_nuclei <- NA
+  df_data_dummy$green_corrected_total_fluorescence_cell_per_no_of_nuclei <-
+    df_data_dummy$green_corrected_total_fluorescence_cell /
+    df_data_dummy$number_of_nuclei
+  
+  # Green: corrected total fluorescence above the nucleus
+  df_data_dummy$green_corrected_total_fluorescence_nucleus <- NA
+  df_data_dummy$green_corrected_total_fluorescence_nucleus <-
+    df_data_dummy$intensity_sum_green_nucleus_region -
+    (df_data_dummy$intensity_mean_green_background*df_data_dummy$number_of_pixels_nucleus_region)
+  
+  # Green: corrected total fluorescence per number of nuclei above the nucleus
+  df_data_dummy$green_corrected_total_fluorescence_nucleus_per_no_of_nuclei <- NA
+  df_data_dummy$green_corrected_total_fluorescence_nucleus_per_no_of_nuclei <-
+    df_data_dummy$green_corrected_total_fluorescence_nucleus /
+    df_data_dummy$number_of_nuclei
+  
+  # Red: corrected total fluorescence inside the entire cell
+  df_data_dummy$red_corrected_total_fluorescence_cell <- NA
+  df_data_dummy$red_corrected_total_fluorescence_cell <-
+    df_data_dummy$intensity_sum_red_foreground -
+    (df_data_dummy$intensity_mean_red_background*df_data_dummy$number_of_pixels_foreground)
+  
+  # Red: corrected total fluorescence per number of nuclei inside the entire cell
+  df_data_dummy$red_corrected_total_fluorescence_cell_per_no_of_nuclei <- NA
+  df_data_dummy$red_corrected_total_fluorescence_cell_per_no_of_nuclei <-
+    df_data_dummy$red_corrected_total_fluorescence_cell /
+    df_data_dummy$number_of_nuclei
+  
+  # Red: corrected total fluorescence above the nucleus
+  df_data_dummy$red_corrected_total_fluorescence_nucleus <- NA
+  df_data_dummy$red_corrected_total_fluorescence_nucleus <-
+    df_data_dummy$intensity_sum_red_nucleus_region -
+    (df_data_dummy$intensity_mean_red_background*df_data_dummy$number_of_pixels_nucleus_region)
+  
+  # Red: corrected total fluorescence per number of nuclei above the nucleus
+  df_data_dummy$red_corrected_total_fluorescence_nucleus_per_no_of_nuclei <- NA
+  df_data_dummy$red_corrected_total_fluorescence_nucleus_per_no_of_nuclei <-
+    df_data_dummy$red_corrected_total_fluorescence_nucleus /
+    df_data_dummy$number_of_nuclei
+  
+  
+  # Grouping results #########################################################
+  
+  # RED ----------------------------------------------------------------------
+  # ROX red inside entire cells
+  print("ROX red inside the entire cell per number of nuclei")
+  # Calculate mean and standard error of mean
+  df_red_cell <- df_data_dummy %>% 
+    filter(experiment_group != "PositiveControl") %>% 
+    group_by(magnification, experiment_group) %>%
+    summarise(mean_intensity = mean(red_corrected_total_fluorescence_cell_per_no_of_nuclei),
+              uncertainty_intensity = qt(p = c(0.975),
+                                         df = length(red_corrected_total_fluorescence_cell_per_no_of_nuclei)-1) *
+                sd(red_corrected_total_fluorescence_cell_per_no_of_nuclei)/
+                length(red_corrected_total_fluorescence_cell_per_no_of_nuclei),
+              number_of_measurements= length(red_corrected_total_fluorescence_cell_per_no_of_nuclei))
+  
+  df_red_cell_mean <- select(df_red_cell, select=-c(uncertainty_intensity, number_of_measurements)) %>% tidyr::spread(key = experiment_group, value = mean_intensity)
+  names(df_red_cell_mean)[names(df_red_cell_mean) == "Control"] <- "mean_control"
+  names(df_red_cell_mean)[names(df_red_cell_mean) == "Stimulation"] <- "mean_stim"
+  # names(df_red_cell_mean)[names(df_red_cell_mean) == "PositiveControl"] <- "mean_positiveControl"
+  
+  df_red_cell_uncertainty <- select(df_red_cell, select=-c(mean_intensity, number_of_measurements)) %>% tidyr::spread(key = experiment_group, value = uncertainty_intensity)
+  names(df_red_cell_uncertainty)[names(df_red_cell_uncertainty) == "Control"] <- "uncertainty_control"
+  names(df_red_cell_uncertainty)[names(df_red_cell_uncertainty) == "Stimulation"] <- "uncertainty_stim"
+  # names(df_red_cell_uncertainty)[names(df_red_cell_uncertainty) == "PositiveControl"] <- "uncertainty_positiveControl"
+  
+  df_red_cell_result <- merge(df_red_cell_mean, df_red_cell_uncertainty, by=intersect(names(df_red_cell_mean), names(df_red_cell_uncertainty)))
+  
+  current_row <- !is.na(df_red_cell_result$mean_control)
+  df_red_cell_result$stim_over_control[current_row] <- df_red_cell_result$mean_stim[current_row] / df_red_cell_result$mean_control[current_row]
+  df_red_cell_result$uncertainty_stim_over_control[current_row] <- df_red_cell_result$uncertainty_stim[current_row] / df_red_cell_result$mean_control[current_row] +
+    (df_red_cell_result$mean_stim[current_row] * df_red_cell_result$uncertainty_control[current_row])/
+    (df_red_cell_result$mean_control[current_row] * df_red_cell_result$mean_control[current_row])
+  
+  # ROX red inside nucleus
+  print("ROX red above/in nuclei per number of nuclei")
+  # Calculate mean and standard error of mean
+  df_red_nuc <- df_data_dummy %>% 
+    filter(experiment_group != "PositiveControl") %>% 
+    group_by(magnification, experiment_group) %>%
+    summarise(mean_intensity = mean(red_corrected_total_fluorescence_nucleus_per_no_of_nuclei),
+              uncertainty_intensity = qt(p = c(0.975),
+                                         df = length(red_corrected_total_fluorescence_nucleus_per_no_of_nuclei)-1) *
+                sd(red_corrected_total_fluorescence_nucleus_per_no_of_nuclei)/
+                length(red_corrected_total_fluorescence_nucleus_per_no_of_nuclei),
+              number_of_measurements= length(red_corrected_total_fluorescence_nucleus_per_no_of_nuclei))
+  
+  df_red_nuc_mean <- select(df_red_nuc, select=-c(uncertainty_intensity, number_of_measurements)) %>% tidyr::spread(key = experiment_group, value = mean_intensity)
+  names(df_red_nuc_mean)[names(df_red_nuc_mean) == "Control"] <- "mean_control"
+  names(df_red_nuc_mean)[names(df_red_nuc_mean) == "Stimulation"] <- "mean_stim"
+  
+  df_red_nuc_uncertainty <- select(df_red_nuc, select=-c(mean_intensity, number_of_measurements)) %>% tidyr::spread(key = experiment_group, value = uncertainty_intensity)
+  names(df_red_nuc_uncertainty)[names(df_red_nuc_uncertainty) == "Control"] <- "uncertainty_control"
+  names(df_red_nuc_uncertainty)[names(df_red_nuc_uncertainty) == "Stimulation"] <- "uncertainty_stim"
+  
+  df_red_nuc_result <- merge(df_red_nuc_mean, df_red_nuc_uncertainty, by=intersect(names(df_red_nuc_mean), names(df_red_nuc_uncertainty)))
+  
+  df_red_nuc_result$stim_over_control <- df_red_nuc_result$mean_stim / df_red_nuc_result$mean_control
+  df_red_nuc_result$uncertainty_stim_over_control <- df_red_nuc_result$uncertainty_stim / df_red_nuc_result$mean_control +
+    (df_red_nuc_result$mean_stim*df_red_nuc_result$uncertainty_control)/(df_red_nuc_result$mean_control*df_red_nuc_result$mean_control)
+  
+  
+  # GREEN --------------------------------------------------------------------
+  
+  # ROX green inside entire cells
+  print("ROX green inside the entire cell per number of nuclei")
+  # Calculate mean and standard error of mean
+  df_green_cell <- df_data_dummy %>% 
+    filter(experiment_group != "PositiveControl") %>% 
+    group_by(magnification, experiment_group) %>%
+    summarise(mean_intensity = mean(green_corrected_total_fluorescence_cell_per_no_of_nuclei),
+              uncertainty_intensity = qt(p = c(0.975),
+                                         df = length(green_corrected_total_fluorescence_cell_per_no_of_nuclei)-1) *
+                sd(green_corrected_total_fluorescence_cell_per_no_of_nuclei)/
+                length(green_corrected_total_fluorescence_cell_per_no_of_nuclei),
+              number_of_measurements= length(green_corrected_total_fluorescence_cell_per_no_of_nuclei))
+  
+  df_green_cell_mean <- select(df_green_cell, select=-c(uncertainty_intensity, number_of_measurements)) %>% tidyr::spread(key = experiment_group, value = mean_intensity)
+  names(df_green_cell_mean)[names(df_green_cell_mean) == "Control"] <- "mean_control"
+  names(df_green_cell_mean)[names(df_green_cell_mean) == "Stimulation"] <- "mean_stim"
+  
+  df_green_cell_uncertainty <- select(df_green_cell, select=-c(mean_intensity, number_of_measurements)) %>% tidyr::spread(key = experiment_group, value = uncertainty_intensity)
+  names(df_green_cell_uncertainty)[names(df_green_cell_uncertainty) == "Control"] <- "uncertainty_control"
+  names(df_green_cell_uncertainty)[names(df_green_cell_uncertainty) == "Stimulation"] <- "uncertainty_stim"
+  
+  df_green_cell_result <- merge(df_green_cell_mean, df_green_cell_uncertainty, by=intersect(names(df_green_cell_mean), names(df_green_cell_uncertainty)))
+  df_green_cell_result$stim_over_control <- df_green_cell_result$mean_stim / df_green_cell_result$mean_control
+  df_green_cell_result$uncertainty_stim_over_control <- df_green_cell_result$uncertainty_stim / df_green_cell_result$mean_control +
+    (df_green_cell_result$mean_stim*df_green_cell_result$uncertainty_control)/(df_green_cell_result$mean_control*df_green_cell_result$mean_control)
+  
+  # ROX green inside nucleus
+  
+  print("ROX green above/in nuclei per number of nuclei")
+  # Calculate mean and standard error of mean
+  df_green_nuc <- df_data_dummy %>% 
+    filter(experiment_group != "PositiveControl") %>% 
+    group_by(magnification, experiment_group) %>%
+    summarise(mean_intensity = mean(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei),
+              uncertainty_intensity = qt(p = c(0.975),
+                                         df = length(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei)-1) *
+                sd(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei)/
+                length(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei),
+              number_of_measurements= length(green_corrected_total_fluorescence_nucleus_per_no_of_nuclei))
+  
+  df_green_nuc_mean <- select(df_green_nuc, select=-c(uncertainty_intensity, number_of_measurements)) %>% tidyr::spread(key = experiment_group, value = mean_intensity)
+  names(df_green_nuc_mean)[names(df_green_nuc_mean) == "Control"] <- "mean_control"
+  names(df_green_nuc_mean)[names(df_green_nuc_mean) == "Stimulation"] <- "mean_stim"
+  
+  df_green_nuc_uncertainty <- select(df_green_nuc, select=-c(mean_intensity, number_of_measurements)) %>% tidyr::spread(key = experiment_group, value = uncertainty_intensity)
+  names(df_green_nuc_uncertainty)[names(df_green_nuc_uncertainty) == "Control"] <- "uncertainty_control"
+  names(df_green_nuc_uncertainty)[names(df_green_nuc_uncertainty) == "Stimulation"] <- "uncertainty_stim"
+  
+  df_green_nuc_result <- merge(df_green_nuc_mean, df_green_nuc_uncertainty, by=intersect(names(df_green_nuc_mean), names(df_green_nuc_uncertainty)))
+  
+  df_green_nuc_result$stim_over_control <- df_green_nuc_result$mean_stim / df_green_nuc_result$mean_control
+  df_green_nuc_result$uncertainty_stim_over_control <- df_green_nuc_result$uncertainty_stim / df_green_nuc_result$mean_control +
+    (df_green_nuc_result$mean_stim*df_green_nuc_result$uncertainty_control)/(df_green_nuc_result$mean_control*df_green_nuc_result$mean_control)
+  
+  
+  # Plotting ###############################################################
+  output_dir_plots <- paste0(output_dir, "plots/")
+  dir.create(output_dir_plots, showWarnings = FALSE)
+  
+  plot_title_nuc <- "ROX"
+  plot_title_green <- "CellROX Green"
+  plot_title_red <- "CellROX Red"
+  
+  # Number (no) of nuclei per image (blue) ---------------------------------
+  
+  df_data_dummy$experiment_group <- factor(df_data_dummy$experiment_group, levels = c("Control", "Stimulation", "PositiveControl"))
+  
+  plot_no_nuclei <- ggplot(df_data_dummy, aes(x=experiment_group, y=number_of_nuclei)) +
+    geom_violin() +
+    # stat_boxplot(geom ='errorbar', width = 0.3) +
+    geom_boxplot(width=0.05) +
+    facet_wrap(.~ magnification, scale="free") +
+    # geom_jitter(color="black", size=0.5, alpha=0.9) +
+    #ylim(0,20) +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y = element_text(size=18)) +
+    xlab("") +
+    ylab("Number of nuclei per image") +
+    ggtitle(paste0("Number of nuclei (", plot_title_nuc, ") ", append_text)) +
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
+  
+  # print(plot_no_nuclei)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_number_of_nuclei_violin", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_number_of_nuclei_violin", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  plot_no_nuclei <- ggplot(df_data_dummy, aes(y=number_of_nuclei,
+                                              fill=experiment_group)) +
+    geom_boxplot() +
+    facet_wrap(.~ magnification, scale="free") +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y = element_text(size=18),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()) +
+    ylab("Number of nuclei per image") +
+    xlab("") +
+    ggtitle(paste0("Number of nuclei (", plot_title_nuc, ") ", append_text)) +
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
+  
+  #print(plot_no_nuclei)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_number_of_nuclei", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_number_of_nuclei", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  
+  # Total corrected red fluorescence ---------------------------------------
+  
+  plot_red_nuc <- ggplot(df_data_dummy, aes(y=red_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
+                                            x=experiment_group)) +
+    geom_violin() +
+    geom_boxplot(width=0.05) +
+    facet_wrap(.~ magnification, scale="free") +
+    scale_y_continuous(trans='log10') +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y = element_text(size=18)) +
+    ylab("Total corrected red fluorescence\nabove nuclei per number of nuclei") +
+    xlab("") +
+    ggtitle(paste0(plot_title_red, " above nucleus ", append_text)) +
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+  #print(plot_red_nuc)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_nuc_per_number_of_nuclei_violin", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_nuc_per_number_of_nuclei_violin", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  
+  plot_red_nuc <- ggplot(df_data_dummy, aes(y=red_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
+                                            fill=experiment_group)) +
+    geom_boxplot() +
+    #facet_wrap(~end_time, scale="free") +
+    facet_wrap(.~ magnification, scale="free") +
+    scale_y_continuous(trans='log10') +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y = element_text(size=18),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()) +
+    ylab("Total corrected red fluorescence\nabove nuclei per number of nuclei") +
+    xlab("") +
+    ggtitle(paste0(plot_title_red, " above nucleus ", append_text)) +
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+  #print(plot_red_nuc)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_nuc_per_number_of_nuclei", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_nuc_per_number_of_nuclei", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  
+  
+  plot_red_cell <- ggplot(df_data_dummy, aes(y=red_corrected_total_fluorescence_cell_per_no_of_nuclei,
+                                             x=experiment_group)) +
+    geom_violin() +
+    facet_wrap(.~ magnification, scale="free") +
+    scale_y_continuous(trans='log10') +
+    geom_boxplot(width=0.05) +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y = element_text(size=18)) +
+    ylab("Total corrected red fluorescence\nin entire cell per number of nuclei") +
+    xlab("") +
+    ggtitle(paste0(plot_title_red, " in entire cell ", append_text)) +
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+  #print(plot_red_cell)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_cell_per_number_of_nuclei_violin", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_cell_per_number_of_nuclei_violin", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  plot_red_cell <- ggplot(df_data_dummy, aes(y=red_corrected_total_fluorescence_cell_per_no_of_nuclei,
+                                             fill=experiment_group)) +
+    geom_boxplot() +
+    facet_wrap(.~ magnification, scale="free") +
+    scale_y_continuous(trans='log10') +
+    #facet_wrap(~end_time, scale="free") +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y = element_text(size=18),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()) +
+    ylab("Total corrected red fluorescence\nin entire cell per number of nuclei") +
+    xlab("") +
+    ggtitle(paste0(plot_title_red, " in entire cell ", append_text)) +
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+  #print(plot_red_cell)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_cell_per_number_of_nuclei", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_cell_per_number_of_nuclei", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  
+  # Ratio of red fluorescence in cell per number of nuclei for Stim/Control
+  plot_red_ratio_cell <- ggplot(df_red_cell_result, aes(x=0, y=stim_over_control)) +
+    geom_point(size = 6) +
+    geom_errorbar(aes(ymin=stim_over_control-uncertainty_stim_over_control,
+                      ymax=stim_over_control+uncertainty_stim_over_control),
+                  size = 1.5, width=.2) +
+    ylim(0,2) +
+    xlim(-2,2) +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y=element_text(size=18),
+          #axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.text.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()) +
+    ggtitle("ROX red ratio in entire cell ", append_text) +
+    geom_hline(yintercept=1.0, linetype="dashed", size=2) +
+    ylab("Ratio of total corrected red fluorescence\nin entire cell per number of nuclei (Stim/Control)") +
+    xlab("")
+  
+  #print(plot_red_ratio_cell)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_cell_per_number_of_nuclei_ratio", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_cell_per_number_of_nuclei_ratio", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  
+  # Ratio of red fluorescence in cell per number of nuclei for Stim/Control
+  plot_red_ratio_nuc <- ggplot(df_red_nuc_result, aes(x=0, y=stim_over_control)) +
+    geom_point(size = 6) +
+    geom_errorbar(aes(ymin=stim_over_control-uncertainty_stim_over_control,
+                      ymax=stim_over_control+uncertainty_stim_over_control),
+                  size = 1.5, width=.2) +
+    ylim(0,2) +
+    xlim(-2,2) +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y=element_text(size=18),
+          #axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.text.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()) +
+    ggtitle("ROX red ratio above nuclei") +
+    geom_hline(yintercept=1.0, linetype="dashed", size=2) +
+    ylab("Ratio of total corrected red fluorescence\nabove nuclei per number of nuclei (Stim/Control)") +
+    xlab("")
+  
+  #print(plot_red_ratio_nuc)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_nuc_per_number_of_nuclei_ratio", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_red_nuc_per_number_of_nuclei_ratio", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  
+  
+  # Total corrected green fluorescence -------------------------------------
+  
+  
+  plot_green_nuc <- ggplot(df_data_dummy, aes(y=green_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
+                                              x=experiment_group)) +
+    geom_violin() +
+    geom_boxplot(width=0.05) +
+    facet_wrap(.~ magnification, scale="free") +
+    scale_y_continuous(trans='log10') +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y = element_text(size=18)) +
+    ylab("Total corrected green fluorescence\nabove nuclei per number of nuclei") +
+    xlab("") +
+    ggtitle(paste0(plot_title_green, " above nucleus ", append_text)) +
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+  #print(plot_green_nuc)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_nuc_per_number_of_nuclei_violin", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_nuc_per_number_of_nuclei_violin", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  
+  plot_green_nuc <- ggplot(df_data_dummy, aes(y=green_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
+                                              fill=experiment_group)) +
+    geom_boxplot() +
+    #facet_wrap(~end_time, scale="free") +
+    facet_wrap(.~ magnification, scale="free") +
+    scale_y_continuous(trans='log10') +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y = element_text(size=18),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()) +
+    ylab("Total corrected green fluorescence\nabove nuclei per number of nuclei") +
+    xlab("") +
+    ggtitle(paste0(plot_title_green, " above nucleus ", append_text)) +
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+  #print(plot_green_nuc)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_nuc_per_number_of_nuclei", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_nuc_per_number_of_nuclei", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  
+  plot_green_cell <- ggplot(df_data_dummy, aes(y=green_corrected_total_fluorescence_cell_per_no_of_nuclei,
+                                               x=experiment_group)) +
+    geom_violin() +
+    facet_wrap(.~ magnification, scale="free") +
+    scale_y_continuous(trans='log10') +
+    geom_boxplot(width=0.05) +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y = element_text(size=18)) +
+    ylab("Total corrected green fluorescence\nin entire cell per number of nuclei") +
+    xlab("") +
+    ggtitle(paste0(plot_title_green, " in entire cell ", append_text)) +
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+  #print(plot_green_cell)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei_violin", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei_violin", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  plot_green_cell <- ggplot(df_data_dummy, aes(y=green_corrected_total_fluorescence_cell_per_no_of_nuclei,
+                                               fill=experiment_group)) +
+    geom_boxplot() +
+    facet_wrap(.~ magnification, scale="free") +
+    scale_y_continuous(trans='log10') +
+    #facet_wrap(~end_time, scale="free") +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y = element_text(size=18),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()) +
+    ylab("Total corrected green fluorescence\nin entire cell per number of nuclei") +
+    xlab("") +
+    ggtitle(paste0(plot_title_green, " in entire cell ", append_text)) +
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
+  #print(plot_green_cell)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  
+  # Ratio of green fluorescence in cell per number of nuclei for Stim/Control
+  plot_green_ratio_cell <- ggplot(df_green_cell_result, aes(x=0, y=stim_over_control)) +
+    geom_point(size = 6) +
+    geom_errorbar(aes(ymin=stim_over_control-uncertainty_stim_over_control,
+                      ymax=stim_over_control+uncertainty_stim_over_control),
+                  size = 1.5, width=.2) +
+    ylim(0,2) +
+    xlim(-2,2) +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y=element_text(size=18),
+          #axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.text.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()) +
+    ggtitle("ROX green ratio in entire cell ", append_text) +
+    geom_hline(yintercept=1.0, linetype="dashed", size=2) +
+    ylab("Ratio of total corrected green fluorescence\nin entire cell per number of nuclei (Stim/Control)") +
+    xlab("")
+  
+  #print(plot_green_ratio_cell)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei_ratio", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei_ratio", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  
+  # Ratio of green fluorescence in cell per number of nuclei for Stim/Control
+  plot_green_ratio_nuc <- ggplot(df_green_nuc_result, aes(x=0, y=stim_over_control)) +
+    geom_point(size = 6) +
+    geom_errorbar(aes(ymin=stim_over_control-uncertainty_stim_over_control,
+                      ymax=stim_over_control+uncertainty_stim_over_control),
+                  size = 1.5, width=.2) +
+    ylim(0,2) +
+    xlim(-2,2) +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y=element_text(size=18),
+          #axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.text.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()) +
+    ggtitle("ROX green ratio above nuclei") +
+    geom_hline(yintercept=1.0, linetype="dashed", size=2) +
+    ylab("Ratio of total corrected green fluorescence\nabove nuclei per number of nuclei (Stim/Control)") +
+    xlab("")
+  
+  #print(plot_green_ratio_nuc)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_nuc_per_number_of_nuclei_ratio", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_nuc_per_number_of_nuclei_ratio", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  
+}
 
-# Total corrected fluorescence per number of nuclei
-plot_red <- ggplot(df_data, aes(y=red_corrected_total_fluorescence_cell_per_no_of_nuclei,
-                                    fill=experiment_group)) +
-  geom_boxplot() +
-  #facet_wrap(~end_time, scale="free") +
-  theme_bw(base_size = 24) +
-  theme(axis.title.y = element_text(size=18),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank()) +
-  ylab("ROX red corrected total fluorescence in entire cell per number of nuclei") +
-  xlab("") +
-  ggtitle("ROX red in entire cell") +
-  scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
-#print(plot_red)
-
-ggsave(filename = paste(output_dir_plots, "ROXred_cell_per_number_of_nuclei.pdf", sep="/"),
-       width = 297, height = 210, units = "mm")
-ggsave(filename = paste(output_dir_plots, "ROXred_cell_per_number_of_nuclei.png", sep="/"),
-       width = 297, height = 210, units = "mm")
-
-
-# Ratio of ROX red in cell per number of nuclei for Stim/Control
-plot_red_ratio <- ggplot(df_red_cell_result, aes(x=0, y=stim_over_control)) +
-  geom_point(size = 6) +
-  geom_errorbar(aes(ymin=stim_over_control-uncertainty_stim_over_control,
-                    ymax=stim_over_control+uncertainty_stim_over_control),
-                size = 1.5, width=.2) +
-  ylim(0,2) +
-  xlim(-2,2) +
-  theme_bw(base_size = 24) +
-  theme(axis.title.y=element_text(size=18),
-        #axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.text.x = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank()) +
-  ggtitle("ROX red ratio in entire cell") +
-  geom_hline(yintercept=1.0, linetype="dashed", size=2) +
-  ylab("Ratio of corrected total fluorescence of ROX red\nin entire cell per number of nuclei (Stim/Control)") +
-  xlab("")
-
-#print(plot_red_ratio)
-
-ggsave(filename = paste(output_dir_plots, "ROXred_cell_per_number_of_nuclei_ratio.pdf", sep="/"),
-       width = 297, height = 210, units = "mm")
-ggsave(filename = paste(output_dir_plots, "ROXred_cell_per_number_of_nuclei_ratio.png", sep="/"),
-       width = 297, height = 210, units = "mm")
 
 
 
-
-
-# ROX green
-
-# Total corrected fluorescence above nuclei per number of nuclei
-plot_green_nuc <- ggplot(df_data, aes(y=green_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
-                                    fill=experiment_group)) +
-  geom_boxplot() +
-  #facet_wrap(~end_time, scale="free") +
-  theme_bw(base_size = 24) +
-  theme(axis.title.y = element_text(size=18),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank()) +
-  ylab("ROX green corrected total fluorescence\nabove nuclei per number of nuclei") +
-  xlab("") +
-  ggtitle("ROX green above nucleus") +
-  scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
-#print(plot_green_nuc)
-
-ggsave(filename = paste(output_dir_plots, "ROXgreen_nuc_per_number_of_nuclei.pdf", sep="/"),
-       width = 297, height = 210, units = "mm")
-ggsave(filename = paste(output_dir_plots, "ROXgreen_nuc_per_number_of_nuclei.png", sep="/"),
-       width = 297, height = 210, units = "mm")
-
-
-# Total corrected fluorescence in entire cell per number of nuclei
-plot_green_cell <- ggplot(df_data, aes(y=green_corrected_total_fluorescence_cell_per_no_of_nuclei,
-                                          fill=experiment_group)) +
-  geom_boxplot() +
-  #facet_wrap(~end_time, scale="free") +
-  theme_bw(base_size = 24) +
-  theme(axis.title.y = element_text(size=18),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank()) +
-  ylab("ROX green corrected total fluorescence\nin entire cell per number of nuclei") +
-  xlab("") +
-  ggtitle("ROX green in entire cell") +
-  scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
-#print(plot_green_cell)
-
-ggsave(filename = paste(output_dir_plots, "ROXgreen_cell_per_number_of_nuclei.pdf", sep="/"),
-       width = 297, height = 210, units = "mm")
-ggsave(filename = paste(output_dir_plots, "ROXgreen_cell_per_number_of_nuclei.png", sep="/"),
-       width = 297, height = 210, units = "mm")
-
-
-# Total corrected fluorescence above nuclei per number of nuclei
-plot_green_nuc <- ggplot(df_data, aes(y=green_corrected_total_fluorescence_nucleus_per_no_of_nuclei,
-                                           fill=experiment_group)) +
-  geom_boxplot() +
-  #facet_wrap(~end_time, scale="free") +
-  theme_bw(base_size = 24) +
-  theme(axis.title.y = element_text(size=18),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank()) +
-  ylab("ROX green corrected total fluorescence\nabove nuclei per number of nuclei") +
-  xlab("") +
-  ggtitle("ROX green above nuclei") +
-  scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
-#print(plot_green_nuc)
-
-ggsave(filename = paste(output_dir_plots, "ROXgreen_nuc_per_number_of_nuclei.pdf", sep="/"),
-       width = 297, height = 210, units = "mm")
-ggsave(filename = paste(output_dir_plots, "ROXgreen_nuc_per_number_of_nuclei.png", sep="/"),
-       width = 297, height = 210, units = "mm")
-
-
-
-
-# ROX green inside/above nuclei in entire image per number of nuclei
-
-plot_green_nuc <- ggplot(df_green_nuc_result, aes(x=0, y=stim_over_control)) +
-  geom_point(size = 6) +
-  geom_errorbar(aes(ymin=stim_over_control-uncertainty_stim_over_control,
-                    ymax=stim_over_control+uncertainty_stim_over_control),
-                size = 1.5, width=.2) +
-  ylim(0,2) +
-  xlim(-2,2) +
-  theme_bw(base_size = 24) +
-  theme(axis.title.y=element_text(size=18),
-        #axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.text.x = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank()) +
-  ggtitle("ROX green ratio above nucleus") +
-  geom_hline(yintercept=1.0, linetype="dashed", size=2) +
-  ylab("Ratio of corrected total fluorescence of ROX green\nabove nuclei per number of nuclei (Stim/Control)") +
-  xlab("")
-
-#print(plot_green_nuc)
-
-ggsave(filename = paste(output_dir_plots, "ROXgreen_nuc_per_number_of_nuclei_ratio.pdf", sep="/"),
-       width = 297, height = 210, units = "mm")
-ggsave(filename = paste(output_dir_plots, "ROXgreen_nuc_per_number_of_nuclei_ratio.png", sep="/"),
-       width = 297, height = 210, units = "mm")
-
-
-# ROX green in cell in entire image per number of nuclei
-plot_green_cell <- ggplot(df_green_cell_result, aes(x=0, y=stim_over_control)) +
-  geom_point(size = 6) +
-  geom_errorbar(aes(ymin=stim_over_control-uncertainty_stim_over_control,
-                    ymax=stim_over_control+uncertainty_stim_over_control),
-                size = 1.5, width=.2) +
-  ylim(0,2) +
-  xlim(-2,2) +
-  theme_bw(base_size = 24) +
-  theme(axis.title.y=element_text(size=18),
-        #axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.text.x = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank()) +
-  ggtitle("ROX green ratio in entire cell") +
-  geom_hline(yintercept=1.0, linetype="dashed", size=2) +
-  ylab("Ratio of corrected total fluorescence of ROX green\nin entire cell per number of nuclei (Stim/Control)") +
-  xlab("")
-
-#print(plot_green_cell)
-
-ggsave(filename = paste(output_dir_plots, "ROXgreen_cell_per_number_of_nuclei_ratio.pdf", sep="/"),
-       width = 297, height = 210, units = "mm")
-ggsave(filename = paste(output_dir_plots, "ROXgreen_cell_per_number_of_nuclei_ratio.png", sep="/"),
-       width = 297, height = 210, units = "mm")
-
-
-
-# plot_red_nuc <- ggplot(df_data, aes(x=end_time,
-#                                     y=intensity_sum_red_nucleus_region_per_no_of_nuclei,
-#                                     fill=experiment_group)) +
-#   geom_boxplot() +
-#   #facet_wrap(~end_time, scale="free") +
-#   theme_bw(base_size = 24) +
-#   theme(axis.title.y=element_text(size=18),
-#         #axis.text.x = element_blank(),
-#         axis.ticks.x = element_blank()) +
-#   ylab("Sum of red fluorescence intensity above/\nin nucleus per number of nuclei per image") +
-#   xlab("") +
-#   scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
-# print(plot_red_nuc)
-#
-# ggsave(filename = paste(output_dir, "betacat_nuc.pdf", sep="/"),
-#        width = 297, height = 210, units = "mm")
-# ggsave(filename = paste(output_dir, "betacat_nuc.png", sep="/"),
-#        width = 297, height = 210, units = "mm")
-
-#
-# # Beta-Catenin inside/above nuclei in entire image per number of nuclei
-# plot_red_cyt <- ggplot(df_data, aes(x=end_time,
-#                                     y=intensity_sum_red_outside_of_nucleus_region_per_no_of_nuclei,
-#                                     fill=experiment_group)) +
-#   geom_boxplot() +
-#   #facet_wrap(~end_time, scale="free") +
-#   theme_bw(base_size = 24) +
-#   theme(axis.title.y=element_text(size=18),
-#         #axis.text.x = element_blank(),
-#         axis.ticks.x = element_blank()) +
-#   ylab("Sum of red fluorescence intensity outside of\nnuclei regions per number of nuclei per image") +
-#   xlab("") +
-#   scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
-# print(plot_red_cyt)
-#
-# ggsave(filename = paste(output_dir, "betacat_cyt.pdf", sep="/"),
-#        width = 297, height = 210, units = "mm")
-# ggsave(filename = paste(output_dir, "betacat_cyt.png", sep="/"),
-#        width = 297, height = 210, units = "mm")
-#
-# # Beta-Actin (green)
-#
-# # Beta-Actin (green) outside of nuclei regions in entire image per number of nuclei
-# plot_green_cyt <- ggplot(df_data, aes(x=end_time,
-#                                       y=intensity_sum_green_outside_of_nucleus_region_per_no_of_nuclei ,
-#                                       fill=experiment_group)) +
-#   geom_boxplot() +
-#   #facet_wrap(~magnification, scale="free") +
-#   theme_bw(base_size = 24) +
-#   theme(axis.title.y=element_text(size=18),
-#         #axis.text.x = element_blank(),
-#         axis.ticks.x = element_blank()) +
-#   ylab("Sum of green fluorescence intensity outside of\nnuclei regions per number of nuclei per image") +
-#   xlab("") +
-#   scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
-# print(plot_green_cyt)
-#
-# ggsave(filename = paste(output_dir, "bactin_cyt.pdf", sep="/"),
-#        width = 297, height = 210, units = "mm")
-# ggsave(filename = paste(output_dir, "bactin_cyt.png", sep="/"),
-#        width = 297, height = 210, units = "mm")
-#
-#
-# # Beta-Actin (green) insinde of/above nuclei regions in entire image per number of nuclei
-# plot_green_nuc <- ggplot(df_data, aes(x=end_time,
-#                                       y=intensity_sum_green_nucleus_region_per_no_of_nuclei ,
-#                                       fill=experiment_group)) +
-#   geom_boxplot() +
-#   #facet_wrap(~magnification, scale="free") +
-#   theme_bw(base_size = 24) +
-#   theme(axis.title.y=element_text(size=18),
-#         #axis.text.x = element_blank(),
-#         axis.ticks.x = element_blank()) +
-#   ylab("Sum of green fluorescence intensity above/\nin nucleus per number of nuclei per image") +
-#   xlab("") +
-#   scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
-# print(plot_green_nuc)
-#
-# ggsave(filename = paste(output_dir, "bactin_nuc.pdf", sep="/"),
-#        width = 297, height = 210, units = "mm")
-# ggsave(filename = paste(output_dir, "bactin_nuc.png", sep="/"),
-#        width = 297, height = 210, units = "mm")
-#
-#
-# # Beta-Actin (green) in entire image per number of nuclei
-# plot_green <- ggplot(df_data, aes(x=end_time,
-#                                       y=intensity_sum_green_per_no_of_nuclei ,
-#                                       fill=experiment_group)) +
-#   geom_boxplot() +
-#   #facet_wrap(~magnification, scale="free") +
-#   theme_bw(base_size = 24) +
-#   theme(axis.title.y=element_text(size=18),
-#         #axis.text.x = element_blank(),
-#         axis.ticks.x = element_blank()) +
-#   ylab("Sum of green fluorescence intensity\nin entire image per number of nuclei per image") +
-#   xlab("") +
-#   scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation"))
-# print(plot_green)
-#
-# ggsave(filename = paste(output_dir, "bactin_nuc.pdf", sep="/"),
-#        width = 297, height = 210, units = "mm")
-# ggsave(filename = paste(output_dir, "bactin_nuc.png", sep="/"),
-#        width = 297, height = 210, units = "mm")
 
