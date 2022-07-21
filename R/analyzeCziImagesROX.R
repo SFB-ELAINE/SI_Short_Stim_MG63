@@ -65,8 +65,8 @@ if(analyzeCziImages){
     }else{
       df_dummy <- cellPixels::cellPixels(input_dir = input_directories[i],
                                          nucleus_color = "blue",
-                                         protein_in_nuc_color = "red",
-                                         protein_in_cytosol_color = "green",
+                                         protein_in_nuc_color = "green",
+                                         protein_in_cytosol_color = "red",
                                          number_size_factor = 0.2,
                                          add_scale_bar = TRUE)
       df_results <- rbind(df_results, df_dummy)
