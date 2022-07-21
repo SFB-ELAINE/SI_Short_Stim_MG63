@@ -383,10 +383,10 @@ df_result <- df_data %>%
   dplyr::summarise(fraction_mean = mean(fraction_dead_live))
 
 write.csv(x = df_result,
-          file = paste(output_dir_data,"fraction_dead_liv_eaggregated.csv", sep=""),
+          file = paste(output_dir_data,"fraction_dead_live_eaggregated.csv", sep=""),
           row.names = FALSE)
 write.csv2(x = df_result,
-           file = paste(output_dir_data,"fraction_dead_liv_aggregated_de.csv", sep=""),
+           file = paste(output_dir_data,"fraction_dead_live_aggregated_de.csv", sep=""),
            row.names = FALSE)
 
 
