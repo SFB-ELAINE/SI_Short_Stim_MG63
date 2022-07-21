@@ -1,7 +1,7 @@
-# Script for analyzing czi images of ROX                           +++++++++
+# Script for analyzing czi images of Live/Dead staining            +++++++++
 # Author: Kai Budde
-# Created: 2022/06/30
-# Last changed: 2022/07/19
+# Created: 2022/07/21
+# Last changed: 2022/07/21
 
 # Delete everything in the environment
 rm(list = ls())
@@ -12,13 +12,14 @@ graphics.off()
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 # Directory of the images with CellROX measurements
-input_directories_CellRox <- c(
-  # "E:/PhD/Daten/ShortStim_ZellBio/CellRox/09.05.2022/",
-  "E:/PhD/Daten/ShortStim_ZellBio/CellRox/Versuch 1 220712/",
-  "E:/PhD/Daten/ShortStim_ZellBio/CellRox/Versuch 2 220713/",
-  "E:/PhD/Daten/ShortStim_ZellBio/CellRox/Versuch 3 220715/")
+input_directories_livedead <- c(
+  "E:/PhD/Daten/ShortStim_ZellBio/LiveDead/Versuch 1/",
+  "E:/PhD/Daten/ShortStim_ZellBio/LiveDead/Versuch 2/",
+  "E:/PhD/Daten/ShortStim_ZellBio/LiveDead/Versuch 3/",
+  "E:/PhD/Daten/ShortStim_ZellBio/LiveDead/Versuch 4/",
+  "E:/PhD/Daten/ShortStim_ZellBio/LiveDead/Versuch 5/")
 
-output_dir <- "E:/PhD/Daten/ShortStim_ZellBio/CellRox/"
+output_dir <- "E:/PhD/Daten/ShortStim_ZellBio/LiveDead/"
 
 # The the following TRUE if the czi images have not yet been analyzed
 analyzeCziImages <- FALSE
@@ -52,21 +53,21 @@ require(cellPixels)
 
 ## Check for CellROX -------------------------------------------------------
 if(analyzeCziImages){
-  input_directories <- c(input_directories_CellRox)
+  input_directories <- c(input_directories_livedead)
   
   for(i in 1:length(input_directories)){
     if(i == 1){
       df_results <- cellPixels::cellPixels(input_dir = input_directories[i],
                                            nucleus_color = "blue",
-                                           protein_in_nuc_color = "green",
-                                           protein_in_cytosol_color = "red",
+                                           protein_in_nuc_color = "red",
+                                           protein_in_cytosol_color = "green",
                                            number_size_factor = 0.2,
                                            add_scale_bar = TRUE)
     }else{
       df_dummy <- cellPixels::cellPixels(input_dir = input_directories[i],
                                          nucleus_color = "blue",
-                                         protein_in_nuc_color = "green",
-                                         protein_in_cytosol_color = "red",
+                                         protein_in_nuc_color = "red",
+                                         protein_in_cytosol_color = "green",
                                          number_size_factor = 0.2,
                                          add_scale_bar = TRUE)
       df_results <- rbind(df_results, df_dummy)
@@ -76,7 +77,7 @@ if(analyzeCziImages){
   rm(i)
   
   # Get and save metadata as csv
-  input_directories <- c(input_directories_CellRox)
+  input_directories <- c(input_directories_livedead)
   
   for(i in 1:length(input_directories)){
     
@@ -92,6 +93,7 @@ if(analyzeCziImages){
       if(j==1){
         df_metadata <- readCzi::readCziMetadata(input_file = file_names_czi[j], save_metadata = FALSE)
       }else{
+        print(j)
         df_dummy <- readCzi::readCziMetadata(input_file = file_names_czi[j], save_metadata = FALSE)
         df_metadata <- dplyr::bind_rows(df_metadata, df_dummy)
         rm(df_dummy)
@@ -103,10 +105,10 @@ if(analyzeCziImages){
     dir.create(current_output_dir, showWarnings = FALSE)
     
     write.csv(x = df_metadata,
-              file = paste(output_dir,"summary_metadata.csv", sep=""),
+              file = paste(current_output_dir,"summary_metadata.csv", sep=""),
               row.names = FALSE)
     write.csv2(x = df_metadata,
-               file = paste(output_dir,"summary_metadata_de.csv", sep=""),
+               file = paste(current_output_dir,"summary_metadata_de.csv", sep=""),
                row.names = FALSE)
     
     
@@ -118,7 +120,7 @@ if(analyzeCziImages){
 ## Data analysis -----------------------------------------------------------
 
 # Import data
-input_directories <- c(input_directories_CellRox)
+input_directories <- c(input_directories_livedead)
 for(i in 1:length(input_directories)){
   if(i == 1){
     df_data <- readr::read_csv(file = paste0(input_directories[i], "/output/image_analysis_summary_en.csv"), name_repair = "universal")
@@ -142,38 +144,40 @@ dir.create(output_dir_data, showWarnings = FALSE)
 df_data <- df_data[is.na(df_data$manual_quality_check),]
 
 # Add column with information about date of experiment
+# Still unknown dates
 df_data$date <- NA
-df_data$date <- suppressWarnings(
-  as.numeric(gsub(pattern = "^([0-9]{6}).+\\.czi$",
-                  replacement = "\\1",
-                  x = df_data$fileName)))
+df_data$date <- c(rep("2022-07-01", 60),
+                  rep("2022-07-02", 62),
+                  rep("2022-07-03", 60),
+                  rep("2022-07-04", 60),
+                  rep("2022-07-05", 58))
 df_data$date <- lubridate::ymd(df_data$date)
 
 # Add column with information of magnification of the objective of the microscope
 df_data$magnification <- NA
-df_data$magnification <- df_metadata$objective_magnification[match(df_metadata$fileName, df_data$fileName)]
+df_data$magnification <- df_metadata$objective_magnification[match(df_data$fileName, df_metadata$fileName)]
 
 # Add column with information about whether an image was retaken
 df_data$image_retake <- FALSE
-df_data$image_retake <- grepl(pattern = ".+_.+_", x = df_data$fileName, ignore.case = TRUE)
+df_data$image_retake <- grepl(pattern = ".+_[0-9]+_[0-9]+\\.czi$", x = df_data$fileName, ignore.case = TRUE)
 
 # Add column with information about which well the cells were from
 df_data$well_number <- NA
-# without retake
-df_data$well_number[!df_data$image_retake] <- suppressWarnings(
-  as.numeric(gsub(pattern = ".+([0-9]+)_[0-9]+\\.czi$",
+df_data$well_number <- suppressWarnings(
+  as.numeric(gsub(pattern = "^.+([0-9])+_z.+",
                   replacement = "\\1",
-                  x = df_data$fileName[!df_data$image_retake])))
-#with retake
-df_data$well_number[df_data$image_retake] <- suppressWarnings(
-  as.numeric(gsub(pattern = ".+([0-9]+)_[0-9]+_[0-9]\\.czi$",
-                  replacement = "\\1",
-                  x = df_data$fileName[df_data$image_retake])))
+                  x = df_data$fileName)))
+# #with retake
+# df_data$well_number[df_data$image_retake] <- suppressWarnings(
+#   as.numeric(gsub(pattern = ".+([0-9]+)_[0-9]+_[0-9]\\.czi$",
+#                   replacement = "\\1",
+#                   x = df_data$fileName[df_data$image_retake])))
 
 
 # Add column with information about which image number the cells were from
 df_data$image_number <- NA
-# without retake
+
+#without retake
 df_data$image_number[!df_data$image_retake] <- suppressWarnings(
   as.numeric(gsub(pattern = ".+_([0-9]+)\\.czi$",
                   replacement = "\\1",
@@ -187,11 +191,11 @@ df_data$image_number[df_data$image_retake] <- suppressWarnings(
 # Add column with information about which group an experiment belongs to
 df_data$experiment_group <- NA
 df_data$experiment_group[
-  grepl(pattern = " Stm", x = df_data$fileName, ignore.case = TRUE)] <- "Stimulation"
+  grepl(pattern = "stm", x = df_data$fileName, ignore.case = TRUE)] <- "Stimulation"
+# df_data$experiment_group[
+#   grepl(pattern = " poskon", x = df_data$fileName, ignore.case = TRUE)] <- "PositiveControl"
 df_data$experiment_group[
-  grepl(pattern = " poskon", x = df_data$fileName, ignore.case = TRUE)] <- "PositiveControl"
-df_data$experiment_group[
-  grepl(pattern = " kon", x = df_data$fileName, ignore.case = TRUE)] <- "Control"
+  grepl(pattern = "kon", x = df_data$fileName, ignore.case = TRUE)] <- "Control"
 
 
 # Add column with information about which experiment_number an experiment belongs to (n)
@@ -206,60 +210,10 @@ df_data$experiment_number <-  (match(df_data$date, unique(df_data$date))-1) * nu
 
 # Reorder columns
 df_data <- df_data %>% 
-  dplyr::relocate(c("date", "experiment_group", "experiment_number", "well_number", "image_number", "image_retake", "magnification" ),
+  dplyr::relocate(c("experiment_group", "experiment_number", "well_number", "image_number", "image_retake", "magnification" ),
                   .after = "fileName")
-
-
-# Calculations of additional values to be added to the tibble ##############
-
-# Green: corrected total fluorescence inside the entire cell
-df_data$green_corrected_total_fluorescence_cell <- NA
-df_data$green_corrected_total_fluorescence_cell <-
-  df_data$intensity_sum_green_foreground -
-  (df_data$intensity_mean_green_background*df_data$number_of_pixels_foreground)
-
-# Green: corrected total fluorescence per number of nuclei inside the entire cell
-df_data$green_corrected_total_fluorescence_cell_per_no_of_nuclei <- NA
-df_data$green_corrected_total_fluorescence_cell_per_no_of_nuclei <-
-  df_data$green_corrected_total_fluorescence_cell /
-  df_data$number_of_nuclei
-
-# Green: corrected total fluorescence above the nucleus
-df_data$green_corrected_total_fluorescence_nucleus <- NA
-df_data$green_corrected_total_fluorescence_nucleus <-
-  df_data$intensity_sum_green_nucleus_region -
-  (df_data$intensity_mean_green_background*df_data$number_of_pixels_nucleus_region)
-
-# Green: corrected total fluorescence per number of nuclei above the nucleus
-df_data$green_corrected_total_fluorescence_nucleus_per_no_of_nuclei <- NA
-df_data$green_corrected_total_fluorescence_nucleus_per_no_of_nuclei <-
-  df_data$green_corrected_total_fluorescence_nucleus /
-  df_data$number_of_nuclei
-
-# Red: corrected total fluorescence inside the entire cell
-df_data$red_corrected_total_fluorescence_cell <- NA
-df_data$red_corrected_total_fluorescence_cell <-
-  df_data$intensity_sum_red_foreground -
-  (df_data$intensity_mean_red_background*df_data$number_of_pixels_foreground)
-
-# Red: corrected total fluorescence per number of nuclei inside the entire cell
-df_data$red_corrected_total_fluorescence_cell_per_no_of_nuclei <- NA
-df_data$red_corrected_total_fluorescence_cell_per_no_of_nuclei <-
-  df_data$red_corrected_total_fluorescence_cell /
-  df_data$number_of_nuclei
-
-# Red: corrected total fluorescence above the nucleus
-df_data$red_corrected_total_fluorescence_nucleus <- NA
-df_data$red_corrected_total_fluorescence_nucleus <-
-  df_data$intensity_sum_red_nucleus_region -
-  (df_data$intensity_mean_red_background*df_data$number_of_pixels_nucleus_region)
-
-# Red: corrected total fluorescence per number of nuclei above the nucleus
-df_data$red_corrected_total_fluorescence_nucleus_per_no_of_nuclei <- NA
-df_data$red_corrected_total_fluorescence_nucleus_per_no_of_nuclei <-
-  df_data$red_corrected_total_fluorescence_nucleus /
-  df_data$number_of_nuclei
-
+  # dplyr::relocate(c("date", "experiment_group", "experiment_number", "well_number", "image_number", "image_retake", "magnification" ),
+  #                 .after = "fileName")
 
 
 # Save final data frames
@@ -276,9 +230,6 @@ write.csv(x = df_metadata,
 write.csv2(x = df_metadata,
            file = paste(output_dir_data,"summary_metadata_complete_de.csv", sep=""),
            row.names = FALSE)
-
-
-
 
 
 
@@ -811,7 +762,7 @@ write.csv2(x = df_result,
 
 df_result_gathered <- df_result %>%
   tidyr::gather(key, value, -experiment_number, -experiment_group)
-  
+
 df_result_ratio <- df_result_gathered %>% 
   dplyr::filter(experiment_group != "PositiveControl") %>% 
   dplyr::group_by(experiment_number, key) %>% 
