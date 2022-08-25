@@ -2,14 +2,14 @@
 # oscilloscope recordings (zipped files)              ++++++++++++++++++++++
 # Author: Kai Budde
 # Created: 2022/05/18
-# Last changed: 2022/06/15
+# Last changed: 2022/08/25
 
 # Delete everything in the environment
 rm(list = ls())
 # close all open plots in RStudio
 graphics.off()
 
-# Load packages ############################################################
+# Load packages ############################################################warnings
 
 # Set groundhog day for reproducibility (see https://groundhogr.com)
 groundhog.day <- "2022-03-01"
@@ -35,32 +35,52 @@ source("C:/Users/Kai/Documents/git/gitHub/oscilloscopeR/R/plotWaveforms.R")
 
 # Data input ###############################################################
 # Directory (containing directories with recording (yaml files))
-input_directory <- "data/stimulation"
-output_dir <- "plots/stimulation"
+
+# input_directory <- "data/stimulation"
+# output_dir <- "plots/stimulation"
+input_directory <- "E:/PhD/Daten/ShortStim_ZellBio/Voltage/"
+output_dir <- "E:/PhD/Daten/ShortStim_ZellBio/Voltage/plots/"
 
 ES_channel_name <- "ElectricalStim"
 function_generator_channel_name <- "FunGen"
-
+resistor_channel_name <- "Resistor"
 
 # Go through every recording ###############################################
 dir.create(output_dir, showWarnings = FALSE)
 
 recording_files <- list.files(path = input_directory, recursive = FALSE, full.names = TRUE)
 # Keep those with "ShortStimCellBio" in name
-recording_files <- recording_files[
-  grepl(pattern = "ShortStimCellBio", x = recording_files, ignore.case = TRUE) &
-    grepl(pattern = "zip", x = recording_files, ignore.case = TRUE)]
 
-for(current_zip_file in recording_files){
+# Check if files are folders or zips
+zip_files <- any(grepl(pattern = "ShortStimCellBio", x = recording_files, ignore.case = TRUE) &
+  grepl(pattern = "zip", x = recording_files, ignore.case = TRUE))
+
+if(zip_files){
+  recording_files <- recording_files[
+    grepl(pattern = "ShortStimCellBio", x = recording_files, ignore.case = TRUE) &
+      grepl(pattern = "zip", x = recording_files, ignore.case = TRUE)]
   
-  current_output_dir <- file.path(output_dir, basename(current_zip_file))
-  current_output_dir <- gsub(pattern = "\\.zip", replacement = "", x = current_output_dir, ignore.case = TRUE)
-  dir.create(current_output_dir, showWarnings = FALSE)
-  plot_title <- gsub(pattern = "(.+)_.+", replacement = "\\1", x = basename(current_zip_file))
+}else{
+  recording_files <- recording_files[
+    grepl(pattern = "ShortStimCellBio", x = recording_files, ignore.case = TRUE)]
+  
+}
+
+for(current_file in recording_files){
+  
+  # current_output_dir <- file.path(output_dir, basename(current_file))
+  # current_output_dir <- gsub(pattern = "\\.zip", replacement = "", x = current_output_dir, ignore.case = TRUE)
+  # dir.create(current_output_dir, showWarnings = FALSE)
+  plot_title <- gsub(pattern = "(.+)_.+", replacement = "\\1", x = basename(current_file))
   plot_title <- lubridate::as_date(plot_title)
   
-  # Plot measurement data ####################################################
-  df_data <- getMeasurements(input_file = current_zip_file)
+  # Plot measurement data ##################################################
+  if(zip_files){
+    df_data <- getMeasurements(input_file = current_file)
+  }else{
+    df_data <- getMeasurements(input_directory = current_file)
+  }
+  
   
   # Get information about the channels (which one is the function generator and which one the stimulator)
   # Use the channel (out of two) with least "noise" as the function generator channel
@@ -121,10 +141,15 @@ for(current_zip_file in recording_files){
     voltage_limit <- 1.01*max_voltage
   }
   
-  plotMeasurements(input_data = df_data, output_dir = current_output_dir, vpp_min = 0, vpp_max = voltage_limit, vavg_min = -2, vavg_max = 2, plot_title = plot_title)
+  plotMeasurements(input_data = df_data, output_dir = output_dir, vpp_min = 0, vpp_max = voltage_limit, vavg_min = -2, vavg_max = 2, plot_title = plot_title)
   
-  # Plot waveform data #######################################################
-  df_data <- getWaveforms(input_file = current_zip_file)
+  # Plot waveform data #####################################################
+  if(zip_files){
+    df_data <- getWaveforms(input_file = current_file)
+  }else{
+    df_data <- getWaveforms(input_directory = current_file)
+  }
+  
   
   if(exists("ES_channel_name")){
     df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
@@ -153,11 +178,13 @@ for(current_zip_file in recording_files){
   }
 
   plotWaveforms(input_data = df_data,
-                output_dir = current_output_dir,
+                output_dir = output_dir,
                 show_time_in_us = FALSE,
                 channel_function_generator = function_generator_channel_name,
                 channel_stimulation_pulse = ES_channel_name,
-                voltage_limits_of_plot = voltage_limit, filter_stim_off = TRUE,
+                plot_waveforms = "one",
+                voltage_limits_of_plot = voltage_limit,
+                filter_stim_off = TRUE,
                 epsilon_for_filtering = 1)
   
 }
