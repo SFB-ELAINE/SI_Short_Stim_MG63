@@ -1,7 +1,7 @@
 # Script for analyzing czi images of Live/Dead staining            +++++++++
 # Author: Kai Budde
 # Created: 2022/07/21
-# Last changed: 2022/07/21
+# Last changed: 2022/07/22
 
 # Delete everything in the environment
 rm(list = ls())
@@ -146,11 +146,11 @@ df_data <- df_data[is.na(df_data$manual_quality_check),]
 # Add column with information about date of experiment
 # Still unknown dates
 df_data$date <- NA
-df_data$date <- c(rep("2022-07-01", 60),
-                  rep("2022-07-02", 62),
-                  rep("2022-07-03", 60),
-                  rep("2022-07-04", 60),
-                  rep("2022-07-05", 58))
+df_data$date <- c(rep("2022-06-20", 60),
+                  rep("2022-07-05", 62),
+                  rep("2022-07-06", 60),
+                  rep("2022-07-07", 60),
+                  rep("2022-07-08", 58))
 df_data$date <- lubridate::ymd(df_data$date)
 
 # Add column with information of magnification of the objective of the microscope

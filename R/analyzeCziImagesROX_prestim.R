@@ -1,7 +1,7 @@
 # Script for analyzing czi images of ROX                           +++++++++
 # Author: Kai Budde
-# Created: 2022/06/30
-# Last changed: 2022/08/18
+# Created: 2022/08/19
+# Last changed: 2022/08/19
 
 # Delete everything in the environment
 rm(list = ls())
@@ -12,11 +12,17 @@ graphics.off()
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 # Directory of the images with CellROX measurements
-input_directories_CellRox <- c(
+# input_directories_CellRox <- c(
 #   # "E:/PhD/Daten/ShortStim_ZellBio/CellRox/09.05.2022/",
-  "E:/PhD/Daten/ShortStim_ZellBio/CellRox/Versuch 1 220712/",
-  "E:/PhD/Daten/ShortStim_ZellBio/CellRox/Versuch 2 220713/",
-  "E:/PhD/Daten/ShortStim_ZellBio/CellRox/Versuch 3 220715/")
+#   "E:/PhD/Daten/ShortStim_ZellBio/CellRox/Versuch 1 220712/",
+#   "E:/PhD/Daten/ShortStim_ZellBio/CellRox/Versuch 2 220713/",
+#   "E:/PhD/Daten/ShortStim_ZellBio/CellRox/Versuch 3 220715/")
+
+input_directories_CellRox <- c(
+  "E:/PhD/Daten/ShortStim_ZellBio/CellRox/Versuch 1 220815 prestim staining EStim1h/",
+  "E:/PhD/Daten/ShortStim_ZellBio/CellRox/Versuch 2 220816 prestim staining EStim1h/",
+  "E:/PhD/Daten/ShortStim_ZellBio/CellRox/Versuch 3 220817 prestim staining EStim1h/")
+
 
 output_dir <- "E:/PhD/Daten/ShortStim_ZellBio/CellRox/"
 
@@ -27,7 +33,7 @@ analyzeCziImages <- FALSE
 
 # Load packages #############################################################
 
-list.of.packages <- c("BiocManager", "devtools", "tidyverse")
+list.of.packages <- c("BiocManager", "devtools", "tidyverse", "rstatix")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -39,6 +45,7 @@ if(!("EBImage" %in% installed.packages())){
 require(EBImage)
 require(devtools)
 require(tidyverse)
+require(rstatix)
 
 # Install readCzi if not already installed (used version: 0.1.??)
 devtools::install_github(repo = "https://github.com/SFB-ELAINE/readCzi")#, ref = "v0.1.??")
@@ -153,36 +160,39 @@ df_data$date <- lubridate::ymd(df_data$date)
 df_data$magnification <- NA
 df_data$magnification <- df_metadata$objective_magnification[match(df_metadata$fileName, df_data$fileName)]
 
-# Add column with information about whether an image was retaken
-df_data$image_retake <- FALSE
-df_data$image_retake <- grepl(pattern = ".+_.+_", x = df_data$fileName, ignore.case = TRUE)
+# # Add column with information about whether an image was retaken
+# df_data$image_retake <- FALSE
+# df_data$image_retake <- grepl(pattern = ".+_.+_", x = df_data$fileName, ignore.case = TRUE)
 
 # Add column with information about which well the cells were from
 df_data$well_number <- NA
-# without retake
-df_data$well_number[!df_data$image_retake] <- suppressWarnings(
-  as.numeric(gsub(pattern = ".+([0-9]+)_[0-9]+\\.czi$",
-                  replacement = "\\1",
-                  x = df_data$fileName[!df_data$image_retake])))
-#with retake
-df_data$well_number[df_data$image_retake] <- suppressWarnings(
-  as.numeric(gsub(pattern = ".+([0-9]+)_[0-9]+_[0-9]\\.czi$",
-                  replacement = "\\1",
-                  x = df_data$fileName[df_data$image_retake])))
+df_data$well_number <- as.numeric(gsub(pattern = ".+_W([0-9]+)_.+\\.czi$",
+                                       replacement = "\\1",
+                                       x = df_data$fileName))
+# # without retake
+# df_data$well_number[!df_data$image_retake] <- suppressWarnings(
+#   as.numeric(gsub(pattern = ".+([0-9]+)_[0-9]+\\.czi$",
+#                   replacement = "\\1",
+#                   x = df_data$fileName[!df_data$image_retake])))
+# #with retake
+# df_data$well_number[df_data$image_retake] <- suppressWarnings(
+#   as.numeric(gsub(pattern = ".+([0-9]+)_[0-9]+_[0-9]\\.czi$",
+#                   replacement = "\\1",
+#                   x = df_data$fileName[df_data$image_retake])))
 
 
-# Add column with information about which image number the cells were from
-df_data$image_number <- NA
-# without retake
-df_data$image_number[!df_data$image_retake] <- suppressWarnings(
-  as.numeric(gsub(pattern = ".+_([0-9]+)\\.czi$",
-                  replacement = "\\1",
-                  x = df_data$fileName[!df_data$image_retake])))
-#with retake
-df_data$image_number[df_data$image_retake] <- suppressWarnings(
-  as.numeric(gsub(pattern = ".+_([0-9]+)_[0-9]\\.czi$",
-                  replacement = "\\1",
-                  x = df_data$fileName[df_data$image_retake])))
+# # Add column with information about which image number the cells were from
+# df_data$image_number <- NA
+# # without retake
+# df_data$image_number[!df_data$image_retake] <- suppressWarnings(
+#   as.numeric(gsub(pattern = ".+_([0-9]+)\\.czi$",
+#                   replacement = "\\1",
+#                   x = df_data$fileName[!df_data$image_retake])))
+# #with retake
+# df_data$image_number[df_data$image_retake] <- suppressWarnings(
+#   as.numeric(gsub(pattern = ".+_([0-9]+)_[0-9]\\.czi$",
+#                   replacement = "\\1",
+#                   x = df_data$fileName[df_data$image_retake])))
 
 # Add column with information about which group an experiment belongs to
 df_data$experiment_group <- NA
@@ -206,7 +216,7 @@ df_data$experiment_number <-  (match(df_data$date, unique(df_data$date))-1) * nu
 
 # Reorder columns
 df_data <- df_data %>% 
-  dplyr::relocate(c("date", "experiment_group", "experiment_number", "well_number", "image_number", "image_retake", "magnification" ),
+  dplyr::relocate(c("date", "experiment_group", "experiment_number", "well_number", "magnification" ),
                   .after = "fileName")
 
 
@@ -279,9 +289,6 @@ write.csv2(x = df_metadata,
 
 
 
-
-
-
 # Filter data frame and then calculate addition values and plots them ######
 
 # Filter experiment group = NA
@@ -291,10 +298,14 @@ df_data <- df_data %>%
 # Add "x" to magnification column
 df_data$magnification <- paste0(df_data$magnification, "x")
 
-
 filter_experiment_number <- unique(df_data$experiment_number)
 
-for(i in 0:length(filter_experiment_number)){
+
+output_dir_plots <- paste0(output_dir, "plots/")
+dir.create(output_dir_plots, showWarnings = FALSE)
+
+# for(i in 0:length(filter_experiment_number)){
+for(i in 0:0){
   
   if(i == 0){
     # Do not filter
@@ -428,8 +439,6 @@ for(i in 0:length(filter_experiment_number)){
   
   
   # Plotting ###############################################################
-  output_dir_plots <- paste0(output_dir, "plots/")
-  dir.create(output_dir_plots, showWarnings = FALSE)
   
   plot_title_nuc <- "ROX"
   plot_title_green <- "CellROX Green"
@@ -794,7 +803,7 @@ for(i in 0:length(filter_experiment_number)){
 }
 
 
-# Get ratios Stim/control looking at every experiment number separately ----
+# Get ratios Stim/Control looking at every experiment number separately ----
 df_result <- df_data %>% 
   dplyr::group_by(experiment_number, experiment_group) %>% 
   dplyr::summarise(green_in_cell_per_nuc = mean(green_corrected_total_fluorescence_cell_per_no_of_nuclei),
@@ -809,9 +818,69 @@ write.csv2(x = df_result,
            file = paste(output_dir_data,"image_analysis_aggregated_de.csv", sep=""),
            row.names = FALSE)
 
+# Compare groups (paired t test)
+x_con <- df_result %>% 
+  dplyr::filter(experiment_group == "Control", experiment_number != 6)
+x_con <- x_con$green_in_cell_per_nuc
+
+y_stim <- df_result %>% 
+  dplyr::filter(experiment_group == "Stimulation", experiment_number != 6)
+y_stim <- y_stim$green_in_cell_per_nuc
+
+test_result <- t.test(x_con, y = y_stim, alternative = c("two.sided"),
+                      mu = 0, paired = TRUE, var.equal = FALSE, conf.level = 0.95)
+
+green_in_cell_per_nuc_p_value <- test_result$p.value
+
+x_con <- df_result %>% 
+  dplyr::filter(experiment_group == "Control", experiment_number != 6)
+x_con <- x_con$green_in_nuc_per_nuc
+
+y_stim <- df_result %>% 
+  dplyr::filter(experiment_group == "Stimulation", experiment_number != 6)
+y_stim <- y_stim$green_in_nuc_per_nuc
+
+test_result <- t.test(x_con, y = y_stim, alternative = c("two.sided"),
+                      mu = 0, paired = TRUE, var.equal = FALSE, conf.level = 0.95)
+
+green_in_nuc_per_nuc_p_value <- test_result$p.value
+
+x_con <- df_result %>% 
+  dplyr::filter(experiment_group == "Control", experiment_number != 6)
+x_con <- x_con$red_in_cell_per_nuc
+
+y_stim <- df_result %>% 
+  dplyr::filter(experiment_group == "Stimulation", experiment_number != 6)
+y_stim <- y_stim$red_in_cell_per_nuc
+
+test_result <- t.test(x_con, y = y_stim, alternative = c("two.sided"),
+                      mu = 0, paired = TRUE, var.equal = FALSE, conf.level = 0.95)
+
+red_in_cell_per_nuc_p_value <- test_result$p.value
+
+x_con <- df_result %>% 
+  dplyr::filter(experiment_group == "Control", experiment_number != 6)
+x_con <- x_con$red_in_nuc_per_nuc
+
+y_stim <- df_result %>% 
+  dplyr::filter(experiment_group == "Stimulation", experiment_number != 6)
+y_stim <- y_stim$red_in_nuc_per_nuc
+
+test_result <- t.test(x_con, y = y_stim, alternative = c("two.sided"),
+                      mu = 0, paired = TRUE, var.equal = FALSE, conf.level = 0.95)
+
+red_in_nuc_per_nuc_p_value <- test_result$p.value
+
+p_values <- c(green_in_cell_per_nuc_p_value, green_in_nuc_per_nuc_p_value,
+              red_in_cell_per_nuc_p_value, red_in_nuc_per_nuc_p_value)
+p_values <- round(p_values, digits = 3)
+p_values <- paste0("p=", p_values)
+
+# calculate Ratios
+
 df_result_gathered <- df_result %>%
   tidyr::gather(key, value, -experiment_number, -experiment_group)
-  
+
 df_result_ratio <- df_result_gathered %>% 
   dplyr::filter(experiment_group != "PositiveControl") %>% 
   dplyr::group_by(experiment_number, key) %>% 
@@ -821,8 +890,10 @@ df_result_ratio <- df_result_ratio %>%
   dplyr::filter(experiment_group == "Stimulation") %>% 
   dplyr::select(experiment_number, key, ratio)
 
+df_result_ratio <- df_result_ratio %>% 
+  dplyr::filter(is.finite(ratio))
 
-df_result_ratio <- df_result_ratio %>%  
+df_result_ratio_summary <- df_result_ratio %>%  
   group_by(key) %>% 
   summarize(mean_ratio=mean(ratio), 
             sd_ratio=sd(ratio), 
@@ -830,14 +901,54 @@ df_result_ratio <- df_result_ratio %>%
             se=sd_ratio/sqrt(N_ratio)
   ) 
 
+# Plot single results of ratios of all fluorescence per number of nuclei
+labels <- paste(df_data$date[match(sort(unique(df_result_ratio$experiment_number)), df_data$experiment_number)],
+                " Well ",
+                df_data$well_number[match(sort(unique(df_result_ratio$experiment_number)), df_data$experiment_number)],
+                sep="")
 
-# Ratio (Stim/Control) of all fluorescence
-plot_ratios <- ggplot(df_result_ratio, aes(x=key, y=mean_ratio)) +
+plot_ratios <- ggplot(df_result_ratio, aes(x=key, y=ratio, color=as.factor(experiment_number), group = experiment_number)) +
+  geom_line(size = 1) +
+  geom_point(size = 6) +
+  scale_colour_discrete(name  ="Experiment",
+                   breaks=1:9,
+                   labels=labels) +
+  ylim(0,2.5) +
+  # xlim(-2,2) +
+  theme_bw(base_size = 24) +
+  theme(axis.title.y=element_text(size=18),
+        #axis.text.x = element_blank(),
+        # axis.ticks.x = element_blank(),
+        # axis.text.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.title.x=element_blank()) +
+  scale_x_discrete(labels=c("green_in_cell_per_nuc" = "Green\nin cell",
+                            "green_in_nuc_per_nuc" = "Green\nin nucleus",
+                            "red_in_cell_per_nuc" = "Red\nin cell",
+                            "red_in_nuc_per_nuc" = "Red\nin nucleus")) +
+  ggtitle("Fluorescence ratios (Stimulation/Control)") +
+  geom_hline(yintercept=1.0, linetype="dashed", size=2) +
+  ylab("Ratio of total corrected fluorescence\nper number of nuclei (mean+-SE)")
+
+#print(plot_ratios)
+
+ggsave(filename = paste(output_dir_plots, "all_ratios_StimOverControl.pdf", sep=""),
+       width = 297, height = 210, units = "mm")
+ggsave(filename = paste(output_dir_plots,"all_ratios_StimOverControl.png", sep=""),
+       width = 297, height = 210, units = "mm")
+
+
+
+
+# Ratio (Stim/Control) of all fluorescence per number of nuclei
+plot_ratios <- ggplot(df_result_ratio_summary, aes(x=key, y=mean_ratio)) +
   geom_point(size = 6) +
   geom_errorbar(aes(ymin=mean_ratio-se,
                     ymax=mean_ratio+se),
                 size = 1.5, width=.2) +
-  ylim(0,2) +
+  geom_text(aes( x=key, y=1.85, label=p_values)) +
+  ylim(0,2.5) +
   # xlim(-2,2) +
   theme_bw(base_size = 24) +
   theme(axis.title.y=element_text(size=18),
@@ -863,16 +974,37 @@ ggsave(filename = paste(output_dir_plots,"all_ratios_StimOverControl_combined.pn
        width = 297, height = 210, units = "mm")
 
 
-# Get ratios PosCon/control ------------------------------------------------
+
+
+# Get ratios Stim/Control for fluorescence (not divided by cell count) -----
+df_result <- df_data %>% 
+  dplyr::group_by(experiment_number, experiment_group) %>% 
+  dplyr::summarise(green_in_cell_per_nuc = mean(green_corrected_total_fluorescence_cell),
+                   green_in_nuc_per_nuc = mean(green_corrected_total_fluorescence_nucleus),
+                   red_in_cell_per_nuc = mean(red_corrected_total_fluorescence_cell),
+                   red_in_nuc_per_nuc = mean(red_corrected_total_fluorescence_nucleus))
+
+write.csv(x = df_result,
+          file = paste(output_dir_data,"image_analysis_aggregated_fluorescence.csv", sep=""),
+          row.names = FALSE)
+write.csv2(x = df_result,
+           file = paste(output_dir_data,"image_analysis_aggregated_fluorescence_de.csv", sep=""),
+           row.names = FALSE)
+
+df_result_gathered <- df_result %>%
+  tidyr::gather(key, value, -experiment_number, -experiment_group)
+
 df_result_ratio <- df_result_gathered %>% 
-  dplyr::filter(experiment_group != "Stimulation") %>% 
+  dplyr::filter(experiment_group != "PositiveControl") %>% 
   dplyr::group_by(experiment_number, key) %>% 
   dplyr::mutate(ratio = 1/((sum(value)/value)-1))
 
 df_result_ratio <- df_result_ratio %>% 
-  dplyr::filter(experiment_group == "PositiveControl") %>% 
+  dplyr::filter(experiment_group == "Stimulation") %>% 
   dplyr::select(experiment_number, key, ratio)
 
+df_result_ratio <- df_result_ratio %>% 
+  dplyr::filter(is.finite(ratio))
 
 df_result_ratio <- df_result_ratio %>%  
   group_by(key) %>% 
@@ -883,13 +1015,13 @@ df_result_ratio <- df_result_ratio %>%
   ) 
 
 
-# Ratio (Positive Control/Control) of all fluorescence
+# Ratio (Stim/Control) of all fluorescence
 plot_ratios <- ggplot(df_result_ratio, aes(x=key, y=mean_ratio)) +
   geom_point(size = 6) +
   geom_errorbar(aes(ymin=mean_ratio-se,
                     ymax=mean_ratio+se),
                 size = 1.5, width=.2) +
-  ylim(0,10) +
+  ylim(0,2.5) +
   # xlim(-2,2) +
   theme_bw(base_size = 24) +
   theme(axis.title.y=element_text(size=18),
@@ -903,14 +1035,67 @@ plot_ratios <- ggplot(df_result_ratio, aes(x=key, y=mean_ratio)) +
                             "green_in_nuc_per_nuc" = "Green\nin nucleus",
                             "red_in_cell_per_nuc" = "Red\nin cell",
                             "red_in_nuc_per_nuc" = "Red\nin nucleus")) +
-  ggtitle("Fluorescence ratios (Positive Control/Control)") +
+  ggtitle("Fluorescence ratios (Stimulation/Control)") +
   geom_hline(yintercept=1.0, linetype="dashed", size=2) +
-  ylab("Ratio of total corrected fluorescence\nper number of nuclei (mean+-SE)")
+  ylab("Ratio of total corrected fluorescence (mean+-SE)")
 
 #print(plot_ratios)
 
-ggsave(filename = paste(output_dir_plots, "all_ratios_PosControlOverControl_combined.pdf", sep=""),
+ggsave(filename = paste(output_dir_plots, "all_ratios_StimOverControl_combined_fluorescence.pdf", sep=""),
        width = 297, height = 210, units = "mm")
-ggsave(filename = paste(output_dir_plots,"all_ratios_PosControlOverControl_combined.png", sep=""),
+ggsave(filename = paste(output_dir_plots,"all_ratios_StimOverControl_combined_fluorescence.png", sep=""),
        width = 297, height = 210, units = "mm")
+
+
+
+# # Get ratios PosCon/Control ------------------------------------------------
+# df_result_ratio <- df_result_gathered %>% 
+#   dplyr::filter(experiment_group != "Stimulation") %>% 
+#   dplyr::group_by(experiment_number, key) %>% 
+#   dplyr::mutate(ratio = 1/((sum(value)/value)-1))
+# 
+# df_result_ratio <- df_result_ratio %>% 
+#   dplyr::filter(experiment_group == "PositiveControl") %>% 
+#   dplyr::select(experiment_number, key, ratio)
+# 
+# 
+# df_result_ratio <- df_result_ratio %>%  
+#   group_by(key) %>% 
+#   summarize(mean_ratio=mean(ratio), 
+#             sd_ratio=sd(ratio), 
+#             N_ratio=n(), 
+#             se=sd_ratio/sqrt(N_ratio)
+#   ) 
+# 
+# 
+# # Ratio (Positive Control/Control) of all fluorescence
+# plot_ratios <- ggplot(df_result_ratio, aes(x=key, y=mean_ratio)) +
+#   geom_point(size = 6) +
+#   geom_errorbar(aes(ymin=mean_ratio-se,
+#                     ymax=mean_ratio+se),
+#                 size = 1.5, width=.2) +
+#   ylim(0,10) +
+#   # xlim(-2,2) +
+#   theme_bw(base_size = 24) +
+#   theme(axis.title.y=element_text(size=18),
+#         #axis.text.x = element_blank(),
+#         # axis.ticks.x = element_blank(),
+#         # axis.text.x = element_blank(),
+#         panel.grid.major.x = element_blank(),
+#         panel.grid.minor.x = element_blank(),
+#         axis.title.x=element_blank()) +
+#   scale_x_discrete(labels=c("green_in_cell_per_nuc" = "Green\nin cell",
+#                             "green_in_nuc_per_nuc" = "Green\nin nucleus",
+#                             "red_in_cell_per_nuc" = "Red\nin cell",
+#                             "red_in_nuc_per_nuc" = "Red\nin nucleus")) +
+#   ggtitle("Fluorescence ratios (Positive Control/Control)") +
+#   geom_hline(yintercept=1.0, linetype="dashed", size=2) +
+#   ylab("Ratio of total corrected fluorescence\nper number of nuclei (mean+-SE)")
+# 
+# #print(plot_ratios)
+# 
+# ggsave(filename = paste(output_dir_plots, "all_ratios_PosControlOverControl_combined.pdf", sep=""),
+#        width = 297, height = 210, units = "mm")
+# ggsave(filename = paste(output_dir_plots,"all_ratios_PosControlOverControl_combined.png", sep=""),
+#        width = 297, height = 210, units = "mm")
 

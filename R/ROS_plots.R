@@ -8,11 +8,14 @@ rm(list=ls())
 # Input parameters #########################################################
 
 ROS_data <- "data/ROS_raw_data.csv"
+# ROS_data <- "E:/PhD/Daten/ShortStim_ZellBio/DCFDA/220328_ROS_Mg63_in_EStim_medium/220328_ROS_Mg63_in_EStim_medium_raw_data.csv"
 output_dir <- "plots"
 filter_out_timepoint <- "4h"
 filter_out_experiment_nr <- 2
+calibrate_data <- FALSE
 calibrate_data <- TRUE
-
+input_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
+# input_dir <- "E:/PhD/Daten/ShortStim_ZellBio/DCFDA/220328_ROS_Mg63_in_EStim_medium/"
 
 # General function parameters ##############################################
 options(stringsAsFactors = FALSE, warn=-1)
@@ -21,7 +24,8 @@ library(tidyverse)
 library(ggplot2)
 library(cowplot)
 
-input_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
+
+
 setwd(dir = input_dir)
 setwd(dir = "..")
 
@@ -134,11 +138,13 @@ df_final_output <- df_tidy_ROS %>%
             sd_fluorescence = sd(fluorescence, na.rm = TRUE))
 
 file_name <- paste(output_dir, "/ROS_data.csv", sep="")
+
+dir.create(path = output_dir, showWarnings = FALSE)
 write.csv(x = df_final_output, file = file_name, row.names = FALSE)
 
 # Plotting #################################################################
 
-dir.create(path = output_dir, showWarnings = FALSE)
+
 
 
 # Plot for every time point and experiment class and experiment a histogram
@@ -270,6 +276,7 @@ rm(list = c("i", "j", "df_dummy", "df_group_mean"))
 plot_ROS_ratio <- ggplot(df_final_2, aes(x=TimePoint,ratio_mean_fluorescence)) +
   geom_point(size = 2) +
   geom_line() +
+  geom_hline(yintercept=1.0, linetype="dashed", size=2) +
   geom_vline(xintercept = 0, linetype="dotted", color = "blue", size=1) +
   geom_text(aes(x=0, label="stim on", y=1.4), hjust=-0.1, colour="blue", text=element_text(size=11)) +
   geom_vline(xintercept = 2, linetype="dotted", color = "blue", size=1) +
@@ -278,6 +285,7 @@ plot_ROS_ratio <- ggplot(df_final_2, aes(x=TimePoint,ratio_mean_fluorescence)) +
                     ymax=ratio_mean_fluorescence+sum_sd_fluorescence), width=.2) +
   labs(title="ROS ratio (stim vs. control)",
        x="Time in h", y = "Ratio") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0.8, 2.5)) +
   scale_x_continuous(expand = c(0, 0), limits = c(-1, 37), minor_breaks = c(-1:37),
                      breaks = c(0,2,4,8,12,24,36)) + 
   theme_bw()

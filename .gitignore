@@ -1,8 +1,12 @@
 # Directories
 data/beta catenin/
 data/ROS/
+data/H2O2/
+data/stimulation/
+data/MTSandCV/
 plots/
 R/TODOs
+presentations/
 
 # History files
 .Rhistory
