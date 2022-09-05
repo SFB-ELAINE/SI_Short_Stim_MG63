@@ -1,7 +1,7 @@
 # Script for analyzing czi images of Live/Dead staining            +++++++++
 # Author: Kai Budde
 # Created: 2022/07/21
-# Last changed: 2022/07/22
+# Last changed: 2022/09/05
 
 # Delete everything in the environment
 rm(list = ls())
@@ -21,8 +21,14 @@ input_directories_livedead <- c(
 
 output_dir <- "E:/PhD/Daten/ShortStim_ZellBio/LiveDead/"
 
-# The the following TRUE if the czi images have not yet been analyzed
+# analyzeCziImages TRUE if the czi images have not yet been analyzed
 analyzeCziImages <- FALSE
+
+# use_same_laser_settings when image taken with a different laser setting
+# should not be used in the results
+use_same_laser_settings <- TRUE
+
+plot_title_green <- "Calcein"
 
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -125,9 +131,13 @@ for(i in 1:length(input_directories)){
   if(i == 1){
     df_data <- readr::read_csv(file = paste0(input_directories[i], "/output/image_analysis_summary_en.csv"), name_repair = "universal")
     df_metadata  <- readr::read_csv(file = paste0(input_directories[i], "/output/summary_metadata.csv"), name_repair = "universal")
+    df_data$directory <- i
+    df_metadata$directory <- i
   }else{
     df_data_dummy <- readr::read_csv(file = paste0(input_directories[i], "/output/image_analysis_summary_en.csv"), name_repair = "universal")
     df_metadata_dummy  <- readr::read_csv(file = paste0(input_directories[i], "/output/summary_metadata.csv"), name_repair = "universal")
+    df_data_dummy$directory <- i
+    df_metadata_dummy$directory <- i
     
     df_data <- dplyr::bind_rows(df_data, df_data_dummy)
     df_metadata <- dplyr::bind_rows(df_metadata, df_metadata_dummy)
@@ -140,17 +150,27 @@ rm(list = c("df_data_dummy", "df_metadata_dummy", "i"))
 output_dir_data <- paste0(output_dir, "data/")
 dir.create(output_dir_data, showWarnings = FALSE)
 
-# Delete all rows that do not contain "NA" in manual_quality_check column anymore
-df_data <- df_data[is.na(df_data$manual_quality_check),]
+# Delete all rows that do contain "no" in manual_quality_check column
+df_data$directory <- paste(df_data$directory, df_data$fileName, sep="_")
+df_metadata$directory <- paste(df_metadata$directory, df_metadata$fileName, sep="_")
+
+to_remove <- df_data$directory[grepl(pattern = "no", x = df_data$manual_quality_check, ignore.case = TRUE)]
+df_data <- df_data[!(df_data$directory %in% to_remove),]
+df_metadata <- df_metadata[!(df_metadata$directory %in% to_remove),]
+
 
 # Add column with information about date of experiment
 # Still unknown dates
 df_data$date <- NA
-df_data$date <- c(rep("2022-06-20", 60),
-                  rep("2022-07-05", 62),
-                  rep("2022-07-06", 60),
-                  rep("2022-07-07", 60),
-                  rep("2022-07-08", 58))
+
+df_data$date <- df_metadata$acquisition_date[
+  match(df_data$directory, df_metadata$directory)]
+
+# df_data$date <- c(rep("2022-06-20", 60),
+#                   rep("2022-07-05", 62),
+#                   rep("2022-07-06", 60),
+#                   rep("2022-07-07", 60),
+#                   rep("2022-07-08", 58))
 df_data$date <- lubridate::ymd(df_data$date)
 
 # Add column with information of magnification of the objective of the microscope
@@ -214,13 +234,22 @@ df_data$fraction_dead_live <- df_data$number_of_nuclei_with_second_protein /
 
 # Reorder columns
 df_data <- df_data %>% 
-  dplyr::relocate(c("experiment_group", "experiment_number", "well_number", "image_number", "image_retake", "magnification",
+  dplyr::relocate(c("date", "experiment_group", "experiment_number", "well_number", "image_number", "image_retake", "magnification",
                     "fraction_dead_live", "number_of_nuclei", "number_of_nuclei_with_second_protein"),
                   .after = "fileName")
   # dplyr::relocate(c("date", "experiment_group", "experiment_number", "well_number", "image_number", "image_retake", "magnification" ),
   #                 .after = "fileName")
 
+# Green: corrected total fluorescence per number of nuclei inside the entire cell
+df_data$green_corrected_total_fluorescence_cell <- NA
+df_data$green_corrected_total_fluorescence_cell <-
+  df_data$intensity_sum_green_foreground -
+  (df_data$intensity_mean_green_background*df_data$number_of_pixels_foreground)
 
+df_data$green_corrected_total_fluorescence_cell_per_no_of_nuclei <- NA
+df_data$green_corrected_total_fluorescence_cell_per_no_of_nuclei <-
+  df_data$green_corrected_total_fluorescence_cell /
+  df_data$number_of_nuclei
 
 
 # Save final data frames
@@ -238,21 +267,122 @@ write.csv2(x = df_metadata,
            file = paste(output_dir_data,"summary_metadata_complete_de.csv", sep=""),
            row.names = FALSE)
 
-
-
 # Filter data frame and then calculate addition values and plots them ######
 
 # Filter experiment group = NA
 df_data <- df_data %>% 
   dplyr::filter(!is.na(experiment_group))
 
+if(use_same_laser_settings){
+  # Filter for different laser settings
+  df_data$image_taken_with_identical_settings <- "no"
+  df_metadata$image_taken_with_identical_settings <- "yes"
+  
+  scaling_x_to_use <-
+    as.numeric(names(sort(
+      table(df_metadata$scaling_x_in_um), decreasing = TRUE))[1])
+  scaling_y_to_use <-
+    as.numeric(names(sort(
+      table(df_metadata$scaling_y_in_um), decreasing = TRUE))[1])
+  scaling_z_to_use <-
+    as.numeric(names(sort(
+      table(df_metadata$scaling_z_in_um), decreasing = TRUE))[1])
+  
+  laser_scan_pixel_time_1_to_use <-
+    as.numeric(names(sort(
+      table(df_metadata$laser_scan_pixel_time_1), decreasing = TRUE))[1])
+  laser_scan_pixel_time_2_to_use <-
+    as.numeric(names(sort(
+      table(df_metadata$laser_scan_pixel_time_2), decreasing = TRUE))[1])
+  laser_scan_pixel_time_3_to_use <-
+    as.numeric(names(sort(
+      table(df_metadata$laser_scan_pixel_time_3), decreasing = TRUE))[1])
+  
+  laser_scan_averaging_1_to_use <-
+    as.numeric(names(sort(
+      table(df_metadata$laser_scan_averaging_1), decreasing = TRUE))[1])
+  laser_scan_averaging_2_to_use <-
+    as.numeric(names(sort(
+      table(df_metadata$laser_scan_averaging_2), decreasing = TRUE))[1])
+  laser_scan_averaging_3_to_use <-
+    as.numeric(names(sort(
+      table(df_metadata$laser_scan_averaging_3), decreasing = TRUE))[1])
+  
+  df_metadata$detector_gain_1 <- round(df_metadata$detector_gain_1, digits = 0)
+  df_metadata$detector_gain_2 <- round(df_metadata$detector_gain_2, digits = 0)
+  df_metadata$detector_gain_3 <- round(df_metadata$detector_gain_3, digits = 0)
+  detector_gain_1_to_use <-
+    as.numeric(names(sort(
+      table(df_metadata$detector_gain_1), decreasing = TRUE))[1])
+  detector_gain_2_to_use <-
+    as.numeric(names(sort(
+      table(df_metadata$detector_gain_2), decreasing = TRUE))[1])
+  detector_gain_3_to_use <-
+    as.numeric(names(sort(
+      table(df_metadata$detector_gain_3), decreasing = TRUE))[1])
+  
+  df_metadata <- df_metadata %>% 
+    dplyr::mutate(image_taken_with_identical_settings = if_else(scaling_x_in_um == scaling_x_to_use,image_taken_with_identical_settings, "no")) %>%
+    dplyr::mutate(image_taken_with_identical_settings = if_else(scaling_y_in_um == scaling_y_to_use,image_taken_with_identical_settings, "no")) %>% 
+    dplyr::mutate(image_taken_with_identical_settings = if_else(scaling_z_in_um == scaling_z_to_use,image_taken_with_identical_settings, "no")) %>% 
+    dplyr::mutate(image_taken_with_identical_settings = if_else(laser_scan_pixel_time_1 == laser_scan_pixel_time_1_to_use,image_taken_with_identical_settings, "no")) %>% 
+    dplyr::mutate(image_taken_with_identical_settings = if_else(laser_scan_pixel_time_2 == laser_scan_pixel_time_2_to_use,image_taken_with_identical_settings, "no")) %>% 
+    dplyr::mutate(image_taken_with_identical_settings = if_else(laser_scan_pixel_time_3 == laser_scan_pixel_time_3_to_use,image_taken_with_identical_settings, "no")) %>% 
+    dplyr::mutate(image_taken_with_identical_settings = if_else(laser_scan_averaging_1 == laser_scan_averaging_1_to_use,image_taken_with_identical_settings, "no")) %>% 
+    dplyr::mutate(image_taken_with_identical_settings = if_else(laser_scan_averaging_2 == laser_scan_averaging_2_to_use,image_taken_with_identical_settings, "no")) %>% 
+    dplyr::mutate(image_taken_with_identical_settings = if_else(laser_scan_averaging_3 == laser_scan_averaging_3_to_use,image_taken_with_identical_settings, "no")) %>%
+    dplyr::mutate(image_taken_with_identical_settings = if_else(detector_gain_1 == detector_gain_1_to_use, image_taken_with_identical_settings, "no")) %>% 
+    dplyr::mutate(image_taken_with_identical_settings = if_else(detector_gain_2 == detector_gain_2_to_use, image_taken_with_identical_settings, "no")) %>% 
+    dplyr::mutate(image_taken_with_identical_settings = if_else(detector_gain_3 == detector_gain_3_to_use, image_taken_with_identical_settings, "no"))
+  
+  
+  df_metadata_filtered <- df_metadata[df_metadata$image_taken_with_identical_settings == "yes",]
+  
+  write.csv(x = df_metadata_filtered,
+            file = paste(output_dir_data,"summary_metadata_complete_filtered.csv", sep=""),
+            row.names = FALSE)
+  write.csv2(x = df_metadata_filtered,
+             file = paste(output_dir_data,"summary_metadata_complete_filtered_de.csv", sep=""),
+             row.names = FALSE)
+  write.csv(x = df_metadata,
+            file = paste(output_dir_data,"summary_metadata_complete.csv", sep=""),
+            row.names = FALSE)
+  write.csv2(x = df_metadata,
+             file = paste(output_dir_data,"summary_metadata_complete_de.csv", sep=""),
+             row.names = FALSE)
+  
+  
+  df_data$image_taken_with_identical_settings[
+    match(df_metadata_filtered$directory, df_data$directory)] <- "yes"
+  
+  write.csv(x = df_data,
+            file = paste(output_dir_data,"image_analysis_summary_complete.csv", sep=""),
+            row.names = FALSE)
+  write.csv2(x = df_data,
+             file = paste(output_dir_data,"image_analysis_summary_complete_de.csv", sep=""),
+             row.names = FALSE)
+  
+  # Filter df_data
+  
+  df_data <- df_data[df_data$image_taken_with_identical_settings == "yes",]
+  
+
+  write.csv(x = df_data,
+            file = paste(output_dir_data,"image_analysis_summary_complete_filtered.csv", sep=""),
+            row.names = FALSE)
+  write.csv2(x = df_data,
+             file = paste(output_dir_data,"image_analysis_summary_complete_filtered_de.csv", sep=""),
+             row.names = FALSE)
+  
+}
+
 # Add "x" to magnification column
 df_data$magnification <- paste0(df_data$magnification, "x")
 
 
-filter_experiment_number <- unique(df_data$experiment_number)
+filter_experiment_numbers <- c(0, unique(df_data$experiment_number))
 
-for(i in 0:length(filter_experiment_number)){
+for(i in filter_experiment_numbers){
   
   if(i == 0){
     # Do not filter
@@ -369,6 +499,52 @@ for(i in 0:length(filter_experiment_number)){
   ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_fraction", append_text, ".png", sep=""),
          width = 297, height = 210, units = "mm")
   
+  # Normalized intensity of green fluorescence (Calcein) -------------------
+  
+  plot_green_cell <- ggplot(df_data_dummy, aes(y=green_corrected_total_fluorescence_cell_per_no_of_nuclei,
+                                               x=experiment_group)) +
+    geom_violin() +
+    facet_wrap(.~ magnification, scale="free") +
+    scale_y_continuous(trans='log10') +
+    geom_boxplot(width=0.05) +
+    stat_summary(fun=mean, geom="point", size = 3, shape=23, color="black", fill="black") +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y = element_text(size=18)) +
+    ylab("Total corrected green fluorescence\nin entire cell per number of nuclei") +
+    xlab("") +
+    ggtitle(paste0(plot_title_green, " in entire cell ", append_text)) +
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
+  #print(plot_green_cell)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei_violin", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei_violin", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
+  
+  plot_green_cell <- ggplot(df_data_dummy, aes(x=experiment_group,
+                                               y=green_corrected_total_fluorescence_cell_per_no_of_nuclei,
+                                               fill=experiment_group)) +
+    geom_boxplot() +
+    stat_summary(fun=mean, geom="point", size = 3, shape=23, color="black", fill="black") +
+    facet_wrap(.~ magnification, scale="free") +
+    scale_y_continuous(trans='log10') +
+    #facet_wrap(~end_time, scale="free") +
+    theme_bw(base_size = 24) +
+    theme(axis.title.y = element_text(size=18),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()) +
+    ylab("Total corrected green fluorescence\nin entire cell per number of nuclei") +
+    xlab("") +
+    ggtitle(paste0(plot_title_green, " in entire cell ", append_text)) +
+    scale_fill_discrete(name = "Experiment Group",  labels = c("Control", "Stimulation", "Positive Control"))
+  #print(plot_green_cell)
+  
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei", append_text, ".pdf", sep=""),
+         width = 297, height = 210, units = "mm")
+  ggsave(filename = paste(output_dir_plots, plot_title_nuc, "_green_cell_per_number_of_nuclei", append_text, ".png", sep=""),
+         width = 297, height = 210, units = "mm")
   
 }
 
