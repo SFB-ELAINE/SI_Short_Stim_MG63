@@ -2,7 +2,7 @@
 # oscilloscope recordings (zipped files)              ++++++++++++++++++++++
 # Author: Kai Budde
 # Created: 2022/05/18
-# Last changed: 2022/08/25
+# Last changed: 2023/02/21
 
 # Delete everything in the environment
 rm(list = ls())
@@ -38,8 +38,8 @@ source("C:/Users/Kai/Documents/git/gitHub/oscilloscopeR/R/plotWaveforms.R")
 
 # input_directory <- "data/stimulation"
 # output_dir <- "plots/stimulation"
-input_directory <- "E:/PhD/Daten/ShortStim_ZellBio/Voltage/"
-output_dir <- "E:/PhD/Daten/ShortStim_ZellBio/Voltage/plots/"
+input_directory <- "E:/PhD/Daten/ShortStim_ZellBio/Voltage2/"
+output_dir <- "E:/PhD/Daten/ShortStim_ZellBio/Voltage2/plots/"
 
 ES_channel_name <- "ElectricalStim"
 function_generator_channel_name <- "FunGen"
@@ -66,14 +66,33 @@ if(zip_files){
   
 }
 
+# Create empty tibble for statistics on p2p data
+df_p2p_statistics <- tibble(
+  "directoryName" = basename(recording_files),
+  "date" = as.Date(NA),
+  "p2p_voltage_mean" = as.numeric(NA),
+  "p2p_voltage_median" = as.numeric(NA),
+  "p2p_voltage_sd" = as.numeric(NA),
+  "avg_voltage_mean" = as.numeric(NA),
+  "avg_voltage_median" = as.numeric(NA),
+  "avg_voltage_sd" = as.numeric(NA),
+  "frequency" = as.numeric(NA))
+
 for(current_file in recording_files){
   
   # current_output_dir <- file.path(output_dir, basename(current_file))
   # current_output_dir <- gsub(pattern = "\\.zip", replacement = "", x = current_output_dir, ignore.case = TRUE)
   # dir.create(current_output_dir, showWarnings = FALSE)
-  plot_title <- gsub(pattern = "(.+)_.+", replacement = "\\1", x = basename(current_file))
-  plot_title <- lubridate::as_date(plot_title)
+  # plot_title <- gsub(pattern = "(.+)_.+", replacement = "\\1", x = basename(current_file))
+  plot_title <- gsub(pattern = "(.+)\\..*$", replacement = "\\1", x = basename(current_file))
   
+  plot_title1 <- gsub(pattern = "([0-9]+)_.+", replacement = "\\1", x = plot_title)
+  plot_title1 <- lubridate::as_date(plot_title1)
+  plot_title2 <- gsub(pattern = "[0-9]+_(.+)$", replacement = "\\1", x = plot_title)
+  plot_title2 <- gsub(pattern = "_", replacement = " ", x = plot_title2)
+  
+  plot_title <- paste(plot_title1, plot_title2, sep=" ")
+    
   # Plot measurement data ##################################################
   if(zip_files){
     df_data <- getMeasurements(input_file = current_file)
@@ -141,7 +160,32 @@ for(current_file in recording_files){
     voltage_limit <- 1.01*max_voltage
   }
   
-  plotMeasurements(input_data = df_data, output_dir = output_dir, vpp_min = 0, vpp_max = voltage_limit, vavg_min = -2, vavg_max = 2, plot_title = plot_title)
+  plotMeasurements(input_data = df_data,
+                   output_dir = output_dir,
+                   vpp_min = 0,
+                   vpp_max = voltage_limit,
+                   vavg_min = -2,
+                   vavg_max = 2,
+                   plot_title = plot_title)
+  
+  # Save results in separate tibble
+  df_p2p_statistics$date[df_p2p_statistics$directoryName == basename(current_file)] <- unique(as.Date(df_data$date_time))[1]
+  
+  df_p2p_statistics$p2p_voltage_mean[df_p2p_statistics$directoryName == basename(current_file)] <- 
+    mean(df_data$VPP[df_data$Channel == ES_channel_name])
+  df_p2p_statistics$p2p_voltage_median[df_p2p_statistics$directoryName == basename(current_file)] <- 
+    median(df_data$VPP[df_data$Channel == ES_channel_name])
+  df_p2p_statistics$p2p_voltage_sd[df_p2p_statistics$directoryName == basename(current_file)] <- 
+    sd(df_data$VPP[df_data$Channel == ES_channel_name])
+  df_p2p_statistics$avg_voltage_mean[df_p2p_statistics$directoryName == basename(current_file)] <- 
+    mean(df_data$VAVG[df_data$Channel == ES_channel_name])
+  df_p2p_statistics$avg_voltage_median[df_p2p_statistics$directoryName == basename(current_file)] <- 
+    median(df_data$VAVG[df_data$Channel == ES_channel_name])
+  df_p2p_statistics$avg_voltage_sd[df_p2p_statistics$directoryName == basename(current_file)] <- 
+    sd(df_data$VAVG[df_data$Channel == ES_channel_name])
+  df_p2p_statistics$frequency[df_p2p_statistics$directoryName == basename(current_file)] <- 
+    as.numeric(names(sort(-table(df_data$FREQ[df_data$Channel == function_generator_channel_name])))[1])
+  
   
   # Plot waveform data #####################################################
   if(zip_files){
@@ -151,13 +195,13 @@ for(current_file in recording_files){
   }
   
   
-  if(exists("ES_channel_name")){
+  if(exists("ES_channel")){
     df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
   }
-  if(exists("function_generator_channel_name")){
+  if(exists("FunGen_channel")){
     df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
   }
-  if(exists("resistor_channel_name")){
+  if(exists("resistor_channel")){
     df_data$Channel[df_data$Channel == channels[resistor_channel]]  <- resistor_channel_name
   }
   
@@ -185,6 +229,9 @@ for(current_file in recording_files){
                 plot_waveforms = "one",
                 voltage_limits_of_plot = voltage_limit,
                 filter_stim_off = TRUE,
-                epsilon_for_filtering = 1)
+                epsilon_for_filtering = 1,
+                plot_title = plot_title)
   
 }
+
+write_csv(x = df_p2p_statistics, file = file.path(output_dir, "p2p_statistics.csv"))
