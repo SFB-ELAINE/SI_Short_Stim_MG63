@@ -38,8 +38,9 @@ source("C:/Users/Kai/Documents/git/gitHub/oscilloscopeR/R/plotWaveforms.R")
 
 # input_directory <- "data/stimulation"
 # output_dir <- "plots/stimulation"
-input_directory <- "E:/PhD/Daten/ShortStim_ZellBio/Voltage2/"
-output_dir <- "E:/PhD/Daten/ShortStim_ZellBio/Voltage2/plots/"
+input_directory <- "E:/PhD/Daten/ShortStim_ZellBio/Voltage3"
+stim_data_name_pattern <- "mA" #ShortStimCellBio
+output_dir <- file.path(input_directory, "plots/")
 
 ES_channel_name <- "ElectricalStim"
 function_generator_channel_name <- "FunGen"
@@ -49,20 +50,20 @@ resistor_channel_name <- "Resistor"
 dir.create(output_dir, showWarnings = FALSE)
 
 recording_files <- list.files(path = input_directory, recursive = FALSE, full.names = TRUE)
-# Keep those with "ShortStimCellBio" in name
+# Keep those with stim_data_name_pattern in name
 
 # Check if files are folders or zips
-zip_files <- any(grepl(pattern = "ShortStimCellBio", x = recording_files, ignore.case = TRUE) &
+zip_files <- any(grepl(pattern = stim_data_name_pattern, x = recording_files, ignore.case = TRUE) &
   grepl(pattern = "zip", x = recording_files, ignore.case = TRUE))
 
 if(zip_files){
   recording_files <- recording_files[
-    grepl(pattern = "ShortStimCellBio", x = recording_files, ignore.case = TRUE) &
+    grepl(pattern = stim_data_name_pattern, x = recording_files, ignore.case = TRUE) &
       grepl(pattern = "zip", x = recording_files, ignore.case = TRUE)]
   
 }else{
   recording_files <- recording_files[
-    grepl(pattern = "ShortStimCellBio", x = recording_files, ignore.case = TRUE)]
+    grepl(pattern = stim_data_name_pattern, x = recording_files, ignore.case = TRUE)]
   
 }
 
@@ -70,12 +71,18 @@ if(zip_files){
 df_p2p_statistics <- tibble(
   "directoryName" = basename(recording_files),
   "date" = as.Date(NA),
-  "p2p_voltage_mean" = as.numeric(NA),
-  "p2p_voltage_median" = as.numeric(NA),
-  "p2p_voltage_sd" = as.numeric(NA),
-  "avg_voltage_mean" = as.numeric(NA),
-  "avg_voltage_median" = as.numeric(NA),
-  "avg_voltage_sd" = as.numeric(NA),
+  "ES_p2p_voltage_mean" = as.numeric(NA),
+  "ES_p2p_voltage_median" = as.numeric(NA),
+  "ES_p2p_voltage_sd" = as.numeric(NA),
+  "ES_avg_voltage_mean" = as.numeric(NA),
+  "ES_avg_voltage_median" = as.numeric(NA),
+  "ES_avg_voltage_sd" = as.numeric(NA),
+  "shunt_p2p_voltage_mean" = as.numeric(NA),
+  "shunt_p2p_voltage_median" = as.numeric(NA),
+  "shunt_p2p_voltage_sd" = as.numeric(NA),
+  "shunt_avg_voltage_mean" = as.numeric(NA),
+  "shunt_avg_voltage_median" = as.numeric(NA),
+  "shunt_avg_voltage_sd" = as.numeric(NA),
   "frequency" = as.numeric(NA))
 
 for(current_file in recording_files){
@@ -123,22 +130,40 @@ for(current_file in recording_files){
     df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
     
   }else if(length(channels) == 3){
+    if(length(df_data) > 10){
+      sd_ch1 <- df_data %>% filter(Channel == channels[1] & VPP <1e3 & VPP > 1e-3) %>% summarise(sd(VPP))
+      sd_ch2 <- df_data %>% filter(Channel == channels[2] & VPP <1e3 & VPP > 1e-3) %>% summarise(sd(VPP))
+      sd_ch3 <- df_data %>% filter(Channel == channels[3] & VPP <1e3 & VPP > 1e-3) %>% summarise(sd(VPP))
+      
+      # lowest sd -> function generator
+      # middle sd -> measurement at resistor
+      # highest sd -> stimulator output
+      
+      ES_channel <- which(c(sd_ch1, sd_ch2, sd_ch3) == max(sd_ch1, sd_ch2, sd_ch3))
+      FunGen_channel <- which(c(sd_ch1, sd_ch2, sd_ch3) == min(sd_ch1, sd_ch2, sd_ch3))
+      resistor_channel <- which(c(sd_ch1, sd_ch2, sd_ch3) != max(sd_ch1, sd_ch2, sd_ch3) & c(sd_ch1, sd_ch2, sd_ch3) != min(sd_ch1, sd_ch2, sd_ch3))
+      
+      ES_channel <- channels[ES_channel]
+      FunGen_channel <- channels[FunGen_channel]
+      resistor_channel <- channels[resistor_channel]
+      
+    }else{
+      # Not enough points
+      
+      # lowest Vpp -> function generator
+      # middle Vpp -> measurement at resistor
+      # highest Vpp -> stimulator output
+      
+      FunGen_channel   <- df_data$Channel[which(df_data$VPP == min(df_data$VPP[df_data$VPP < 1e3]))]
+      ES_channel       <- df_data$Channel[which(df_data$VPP == max(df_data$VPP[df_data$VPP < 1e3]))]
+      resistor_channel <- channels[!channels %in% c(FunGen_channel, ES_channel[df_data$VPP < 1e3])][1]
+      
+    }
     
-    sd_ch1 <- df_data %>% filter(Channel == channels[1] & VPP <1e3 & VPP > 1e-3) %>% summarise(sd(VPP))
-    sd_ch2 <- df_data %>% filter(Channel == channels[2] & VPP <1e3 & VPP > 1e-3) %>% summarise(sd(VPP))
-    sd_ch3 <- df_data %>% filter(Channel == channels[3] & VPP <1e3 & VPP > 1e-3) %>% summarise(sd(VPP))
+    df_data$Channel[df_data$Channel == ES_channel]  <- ES_channel_name
+    df_data$Channel[df_data$Channel == FunGen_channel]  <- function_generator_channel_name
+    df_data$Channel[df_data$Channel == resistor_channel]  <- resistor_channel_name
     
-    # lowest sd -> function generator
-    # middle sd -> measurement at resistor
-    # highest sd -> stimulator output
-    
-    ES_channel <- which(c(sd_ch1, sd_ch2, sd_ch3) == max(sd_ch1, sd_ch2, sd_ch3))
-    FunGen_channel <- which(c(sd_ch1, sd_ch2, sd_ch3) == min(sd_ch1, sd_ch2, sd_ch3))
-    resistor_channel <- which(c(sd_ch1, sd_ch2, sd_ch3) != max(sd_ch1, sd_ch2, sd_ch3) & c(sd_ch1, sd_ch2, sd_ch3) != min(sd_ch1, sd_ch2, sd_ch3))
-    
-    df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
-    df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
-    df_data$Channel[df_data$Channel == channels[resistor_channel]]  <- resistor_channel_name
     
   }else{
     print("More than 2 channels used. Please check.")
@@ -171,20 +196,38 @@ for(current_file in recording_files){
   # Save results in separate tibble
   df_p2p_statistics$date[df_p2p_statistics$directoryName == basename(current_file)] <- unique(as.Date(df_data$date_time))[1]
   
-  df_p2p_statistics$p2p_voltage_mean[df_p2p_statistics$directoryName == basename(current_file)] <- 
+  df_p2p_statistics$ES_p2p_voltage_mean[df_p2p_statistics$directoryName == basename(current_file)] <- 
     mean(df_data$VPP[df_data$Channel == ES_channel_name])
-  df_p2p_statistics$p2p_voltage_median[df_p2p_statistics$directoryName == basename(current_file)] <- 
+  df_p2p_statistics$ES_p2p_voltage_median[df_p2p_statistics$directoryName == basename(current_file)] <- 
     median(df_data$VPP[df_data$Channel == ES_channel_name])
-  df_p2p_statistics$p2p_voltage_sd[df_p2p_statistics$directoryName == basename(current_file)] <- 
+  df_p2p_statistics$ES_p2p_voltage_sd[df_p2p_statistics$directoryName == basename(current_file)] <- 
     sd(df_data$VPP[df_data$Channel == ES_channel_name])
-  df_p2p_statistics$avg_voltage_mean[df_p2p_statistics$directoryName == basename(current_file)] <- 
+  df_p2p_statistics$ES_avg_voltage_mean[df_p2p_statistics$directoryName == basename(current_file)] <- 
     mean(df_data$VAVG[df_data$Channel == ES_channel_name])
-  df_p2p_statistics$avg_voltage_median[df_p2p_statistics$directoryName == basename(current_file)] <- 
+  df_p2p_statistics$ES_avg_voltage_median[df_p2p_statistics$directoryName == basename(current_file)] <- 
     median(df_data$VAVG[df_data$Channel == ES_channel_name])
-  df_p2p_statistics$avg_voltage_sd[df_p2p_statistics$directoryName == basename(current_file)] <- 
+  df_p2p_statistics$ES_avg_voltage_sd[df_p2p_statistics$directoryName == basename(current_file)] <- 
     sd(df_data$VAVG[df_data$Channel == ES_channel_name])
-  df_p2p_statistics$frequency[df_p2p_statistics$directoryName == basename(current_file)] <- 
-    as.numeric(names(sort(-table(df_data$FREQ[df_data$Channel == function_generator_channel_name])))[1])
+  
+  if(length(channels) == 3){
+      df_p2p_statistics$shunt_p2p_voltage_mean[df_p2p_statistics$directoryName == basename(current_file)] <- 
+      mean(df_data$VPP[df_data$Channel == resistor_channel_name])
+    df_p2p_statistics$shunt_p2p_voltage_median[df_p2p_statistics$directoryName == basename(current_file)] <- 
+      median(df_data$VPP[df_data$Channel == resistor_channel_name])
+    df_p2p_statistics$shunt_p2p_voltage_sd[df_p2p_statistics$directoryName == basename(current_file)] <- 
+      sd(df_data$VPP[df_data$Channel == resistor_channel_name])
+    df_p2p_statistics$shunt_avg_voltage_mean[df_p2p_statistics$directoryName == basename(current_file)] <- 
+      mean(df_data$VAVG[df_data$Channel == resistor_channel_name])
+    df_p2p_statistics$shunt_avg_voltage_median[df_p2p_statistics$directoryName == basename(current_file)] <- 
+      median(df_data$VAVG[df_data$Channel == resistor_channel_name])
+    df_p2p_statistics$shunt_avg_voltage_sd[df_p2p_statistics$directoryName == basename(current_file)] <- 
+      sd(df_data$VAVG[df_data$Channel == resistor_channel_name])
+  }
+  
+  if("FREQ" %in% names(df_data)){
+    df_p2p_statistics$frequency[df_p2p_statistics$directoryName == basename(current_file)] <- 
+      as.numeric(names(sort(-table(df_data$FREQ[df_data$Channel == function_generator_channel_name])))[1])
+  }
   
   
   # Plot waveform data #####################################################
@@ -196,13 +239,13 @@ for(current_file in recording_files){
   
   
   if(exists("ES_channel")){
-    df_data$Channel[df_data$Channel == channels[ES_channel]]  <- ES_channel_name
+    df_data$Channel[df_data$Channel == ES_channel]  <- ES_channel_name
   }
   if(exists("FunGen_channel")){
-    df_data$Channel[df_data$Channel == channels[FunGen_channel]]  <- function_generator_channel_name
+    df_data$Channel[df_data$Channel == FunGen_channel]  <- function_generator_channel_name
   }
   if(exists("resistor_channel")){
-    df_data$Channel[df_data$Channel == channels[resistor_channel]]  <- resistor_channel_name
+    df_data$Channel[df_data$Channel == resistor_channel]  <- resistor_channel_name
   }
   
   max_voltage <- max(df_data$U[df_data$Channel == ES_channel_name &
